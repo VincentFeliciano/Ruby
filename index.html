@@ -438,11 +438,20 @@
     }
     
     .timeline-header {
-      display: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 0 12px 0;
+      gap: 8px;
     }
-    
+
     .timeline-title {
-      display: none;
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     
     .thread-banner {
@@ -588,9 +597,25 @@
     }
     
     .moment-time {
-      font-size: 10px;
-      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--text-secondary);
       font-family: 'Courier New', monospace;
+      margin-top: 6px;
+      padding: 3px 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+      width: fit-content;
+    }
+
+    .moment-time svg {
+      width: 11px;
+      height: 11px;
+      opacity: 0.7;
+      flex-shrink: 0;
     }
     
     /* SVG Icon Styles */
@@ -659,6 +684,7 @@
       font-size: 13px;
       line-height: 1.5;
       color: #cbd5e1;
+      margin-top: 10px;
       margin-bottom: 8px;
       display: -webkit-box;
       -webkit-line-clamp: 3;
@@ -667,6 +693,11 @@
       text-overflow: ellipsis;
       white-space: pre-wrap;
       word-wrap: break-word;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 10px;
+      resize: none;
     }
     
     /* Markdown Styles */
@@ -945,19 +976,36 @@
       background: rgba(15, 23, 42, 0.8);
       backdrop-filter: blur(20px);
       border-left: 1px solid var(--border-color);
+      overflow: hidden;
+      padding: 0;
+      display: none;
+      flex-direction: column;
+    }
+
+    .detail-panel.visible {
+      display: flex;
+    }
+
+    .detail-panel-content {
+      flex: 1;
       overflow-y: auto;
       padding: 16px;
-      display: none;
     }
-    
-    .detail-panel.visible {
-      display: block;
+
+    .detail-panel-footer {
+      flex-shrink: 0;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color);
+      background: rgba(15, 23, 42, 0.95);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
-    
+
     .detail-panel .btn-secondary,
     .detail-panel .btn-danger {
       width: 100%;
-      margin-bottom: 12px;
+      margin-bottom: 0;
     }
     
     .detail-panel .btn-secondary:first-of-type {
@@ -1880,13 +1928,39 @@
     #graphContainer {
       flex: 1;
       position: relative;
-      background: var(--bg-primary);
+      background: #04070f;
       overflow: hidden;
     }
-    
+
     #graphContainer svg {
       width: 100%;
       height: 100%;
+      position: relative;
+      z-index: 2;
+    }
+
+    .graph-galaxy {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .graph-star {
+      position: absolute;
+      color: #fff;
+      line-height: 1;
+      animation: starDrift linear infinite;
+      will-change: transform, opacity;
+    }
+
+    @keyframes starDrift {
+      0%   { transform: translate(0, 0) scale(1);   opacity: var(--star-opacity); }
+      25%  { transform: translate(var(--dx1), var(--dy1)) scale(1.05); opacity: calc(var(--star-opacity) * 1.4); }
+      50%  { transform: translate(var(--dx2), var(--dy2)) scale(0.95); opacity: var(--star-opacity); }
+      75%  { transform: translate(var(--dx3), var(--dy3)) scale(1.08); opacity: calc(var(--star-opacity) * 1.2); }
+      100% { transform: translate(0, 0) scale(1);   opacity: var(--star-opacity); }
     }
     
     .graph-sidebar {
@@ -2893,8 +2967,289 @@
   padding-bottom: 0;
 }
 
+/* ── 1. Collapsible sidebar sections ── */
+.nav-section h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.nav-section h3:hover {
+  color: var(--text-secondary);
+}
+.nav-section-chevron {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+.nav-section h3.collapsed .nav-section-chevron {
+  transform: rotate(-90deg);
+}
+.nav-section-body.collapsed {
+  display: none;
+}
 
+/* ── 2. Resizable divider ── */
+.timeline-resize-handle {
+  width: 5px;
+  background: var(--border-color);
+  cursor: col-resize;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  position: relative;
+  z-index: 5;
+}
+.timeline-resize-handle:hover,
+.timeline-resize-handle.dragging {
+  background: var(--accent-primary);
+}
 
+/* ── 3. Sort order toggle ── */
+.sort-toggle-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.sort-toggle-btn:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+.sort-toggle-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ── 6. Inline search filter ── */
+.inline-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+}
+.inline-filter-bar svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.inline-filter-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.inline-filter-input::placeholder {
+  color: var(--text-muted);
+}
+.inline-filter-clear {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.2s;
+  display: none;
+}
+.inline-filter-clear.visible {
+  display: block;
+}
+.inline-filter-clear:hover {
+  color: var(--text-primary);
+}
+
+/* ── 7. Theme indicator ── */
+.theme-indicator-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+.theme-indicator {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.theme-indicator:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.15);
+}
+.theme-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  z-index: 500;
+  width: 180px;
+}
+.theme-popover.visible {
+  display: block;
+}
+.theme-popover-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.theme-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.theme-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.15);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.theme-swatch:hover {
+  transform: scale(1.2);
+  border-color: rgba(255,255,255,0.5);
+}
+.theme-swatch.active {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
+}
+
+/* ── 8. Quick Capture slide-in ── */
+.quick-capture-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 220px; /* sidebar width */
+  right: 0;
+  z-index: 200;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-color);
+  padding: 14px 20px;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.quick-capture-overlay.visible {
+  transform: translateY(0);
+}
+.quick-capture-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.quick-capture-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.quick-capture-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  transition: color 0.2s;
+}
+.quick-capture-close:hover {
+  color: var(--text-primary);
+}
+.quick-capture-body {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.quick-capture-textarea {
+  flex: 1;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 8px 10px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.5;
+}
+.quick-capture-textarea:focus {
+  border-color: var(--accent-primary);
+}
+.quick-capture-type {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  padding: 6px 8px;
+  outline: none;
+  cursor: pointer;
+  min-width: 110px;
+}
+.quick-capture-submit {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.quick-capture-submit:hover {
+  opacity: 0.85;
+}
+.quick-capture-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .quick-capture-overlay {
+    left: 0;
+  }
+  .inline-filter-bar {
+    margin: 0 0 12px 0;
+  }
+}
 
   </style>
   <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
@@ -2924,12 +3279,32 @@
             </button>
           </div>
           
-          <!-- Save Status Indicator -->
-          <svg id="saveStatusIcon" class="save-status-icon disabled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Auto-save disabled">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
-          </svg>
+          <!-- Save Status + Theme grouped right -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="theme-indicator-wrapper">
+              <div class="theme-indicator" id="themeIndicator" title="Change theme" onclick="toggleThemePopover(event)"></div>
+              <div class="theme-popover" id="themePopover">
+                <div class="theme-popover-title">Theme</div>
+                <div class="theme-swatch-grid">
+                  <div class="theme-swatch" data-theme="classic" style="background:#00d4ff" title="Ruby Classic" onclick="applyTheme('classic');closeThemePopover()"></div>
+                  <div class="theme-swatch" data-theme="ruby-noir" style="background:#e0115f" title="Ruby Noir" onclick="applyTheme('ruby-noir');closeThemePopover()"></div>
+                  <div class="theme-swatch" data-theme="ruby-twilight" style="background:#a78bfa" title="Ruby Twilight" onclick="applyTheme('ruby-twilight');closeThemePopover()"></div>
+                  <div class="theme-swatch" data-theme="ruby-forest" style="background:#34d399" title="Ruby Forest" onclick="applyTheme('ruby-forest');closeThemePopover()"></div>
+                  <div class="theme-swatch" data-theme="ruby-ocean" style="background:#3b82f6" title="Ruby Ocean" onclick="applyTheme('ruby-ocean');closeThemePopover()"></div>
+                  <div class="theme-swatch" data-theme="ruby-ember" style="background:#f59e0b" title="Ruby Ember" onclick="applyTheme('ruby-ember');closeThemePopover()"></div>
+                  <div class="theme-swatch" data-theme="ruby-slate" style="background:#58a6ff" title="Ruby Slate" onclick="applyTheme('ruby-slate');closeThemePopover()"></div>
+                  <div class="theme-swatch" data-theme="ruby-midnight" style="background:#60a5fa" title="Ruby Midnight" onclick="applyTheme('ruby-midnight');closeThemePopover()"></div>
+                  <div class="theme-swatch" data-theme="ruby-crimson" style="background:#fb7185" title="Ruby Crimson" onclick="applyTheme('ruby-crimson');closeThemePopover()"></div>
+                  <div class="theme-swatch" data-theme="ruby-cosmic" style="background:#c084fc" title="Ruby Cosmic" onclick="applyTheme('ruby-cosmic');closeThemePopover()"></div>
+                </div>
+              </div>
+            </div>
+            <svg id="saveStatusIcon" class="save-status-icon disabled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" title="Auto-save disabled">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -2943,7 +3318,8 @@
       </div>
 
       <div class="nav-section">
-        <h3>Views</h3>
+        <h3 data-section="views" onclick="toggleNavSection('views')">Views <svg class="nav-section-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></h3>
+        <div class="nav-section-body" id="nav-section-body-views">
         <div class="nav-item active" data-view="timeline">
           <svg class="icon-nav" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           Timeline
@@ -2956,8 +3332,10 @@
           <svg class="icon-nav" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
           Graph
         </div>
-        
-        <h3>Filter by Type</h3>
+        </div>
+
+        <h3 data-section="filtertype" onclick="toggleNavSection('filtertype')">Filter by Type <svg class="nav-section-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></h3>
+        <div class="nav-section-body" id="nav-section-body-filtertype">
         <div class="filter-item active" data-filter="all">
           <div class="filter-label">
             <svg class="icon-nav" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
@@ -3021,16 +3399,19 @@
           </div>
           <div class="filter-count" id="count-feature">0</div>
         </div>
-        
-        <h3>Threads</h3>
+        </div><!-- end nav-section-body-filtertype -->
+
+        <h3 data-section="threads" onclick="toggleNavSection('threads')">Threads <svg class="nav-section-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></h3>
+        <div class="nav-section-body" id="nav-section-body-threads">
         <div class="thread-list" id="threadList"></div>
-        
+
         <div id="unthreadedFilter" class="filter-item hidden" style="margin-top: 12px;">
           <div class="filter-label">
             <svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg> Unthreaded
           </div>
           <div class="filter-count" id="count-unthreaded">0</div>
         </div>
+        </div><!-- end nav-section-body-threads -->
       </div>
       
     </div>
@@ -3038,8 +3419,12 @@
     <!-- Timeline View -->
     <div class="timeline-view" id="timelineView">
       <div class="timeline-list">
-        <div class="timeline-header">
+        <div class="timeline-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
           <div class="timeline-title" id="timelineTitle">All Moments</div>
+          <button class="sort-toggle-btn" id="sortToggleBtn" onclick="toggleSortOrder()" title="Toggle sort order">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+            <span id="sortToggleLabel">Newest First</span>
+          </button>
         </div>
         <div id="threadBanner" class="thread-banner hidden">
           <div class="thread-banner-content">
@@ -3051,10 +3436,42 @@
             <button class="thread-banner-close" onclick="clearThreadFilter()">✕</button>
           </div>
         </div>
+        <!-- Inline filter bar -->
+        <div class="inline-filter-bar">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input class="inline-filter-input" id="inlineFilterInput" type="text" placeholder="Filter moments..." autocomplete="off" oninput="onInlineFilterInput(this.value)">
+          <button class="inline-filter-clear" id="inlineFilterClear" onclick="clearInlineFilter()" title="Clear filter">×</button>
+        </div>
         <div id="momentsList"></div>
       </div>
-      
+
+      <!-- Resize Handle -->
+      <div class="timeline-resize-handle" id="timelineResizeHandle"></div>
+
       <div class="detail-panel" id="detailPanel"></div>
+    </div>
+
+    <!-- Quick Capture Overlay -->
+    <div class="quick-capture-overlay" id="quickCaptureOverlay">
+      <div class="quick-capture-header">
+        <span class="quick-capture-title">Quick Capture</span>
+        <button class="quick-capture-close" onclick="hideQuickCapture()" title="Close">×</button>
+      </div>
+      <div class="quick-capture-body">
+        <textarea class="quick-capture-textarea" id="quickCaptureText" rows="2" placeholder="What's on your mind?"></textarea>
+        <select class="quick-capture-type" id="quickCaptureType">
+          <option value="bug">Bug</option>
+          <option value="meeting">Meeting</option>
+          <option value="decision">Decision</option>
+          <option value="codereview">Code Review</option>
+          <option value="research">Research</option>
+          <option value="question">Question</option>
+          <option value="implementation">Implementation</option>
+          <option value="feature">Feature</option>
+        </select>
+        <button class="quick-capture-submit" onclick="submitQuickCapture()">Capture</button>
+      </div>
+      <div class="quick-capture-hint">Ctrl+Enter or Cmd+Enter to open · Esc to close</div>
     </div>
     
     <!-- Capture View -->
@@ -3673,7 +4090,10 @@
     autoSaveFileHandle: null,
     autoSaveEnabled: false,
     autoSaveInterval: null,
-    lastAutoSave: null
+    lastAutoSave: null,
+    sortOrder: 'desc',
+    inlineFilter: '',
+    collapsedSections: {}
   };
   
   // About Modal Functions
@@ -4734,10 +5154,21 @@ window.addEventListener('beforeunload', () => {
       filteredMoments = filteredMoments.filter(m => m.type === state.filterType);
     }
     
-    const displayMoments = state.view === 'search' && state.searchResults.length > 0
+    let displayMoments = state.view === 'search' && state.searchResults.length > 0
       ? state.searchResults
       : filteredMoments;
-    
+
+    // Apply sort order
+    displayMoments = [...displayMoments].sort((a, b) =>
+      state.sortOrder === 'desc' ? b.timestamp - a.timestamp : a.timestamp - b.timestamp
+    );
+
+    // Apply inline text filter
+    if (state.inlineFilter) {
+      const q = state.inlineFilter.toLowerCase();
+      displayMoments = displayMoments.filter(m => m.text && m.text.toLowerCase().includes(q));
+    }
+
     if (displayMoments.length === 0) {
       if (state.selectedThread === 'unthreaded') {
         container.innerHTML = `
@@ -4848,8 +5279,8 @@ window.addEventListener('beforeunload', () => {
           <div class="moment-type" style="color: ${config.color}">
             ${config.icon} ${config.label}
           </div>
-          <div class="moment-time">${formatTime(moment.timestamp)}</div>
         </div>
+        <div class="moment-time"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${formatTime(moment.timestamp)}</div>
         <div class="moment-text">${parseMarkdown(moment.text)}</div>
         ${contextHtml}
       `;
@@ -5045,10 +5476,11 @@ window.addEventListener('beforeunload', () => {
       contextHtml += '</div></div>';
     }
     
-    panel.innerHTML = `
-      ${editButtonHtml}
-      ${pinButtonHtml}
-      ${deleteButtonHtml}
+    panel.innerHTML = '';
+
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'detail-panel-content';
+    contentDiv.innerHTML = `
       ${threadAssignmentHtml}
       <div class="detail-header">
         <div class="detail-type-icon" style="color: ${config.color}">
@@ -5067,7 +5499,9 @@ window.addEventListener('beforeunload', () => {
       
       ${contextHtml}
     `;
-    
+
+    panel.appendChild(contentDiv);
+
     if (moment.priority) {
       const section = document.createElement('div');
       section.className = 'detail-section';
@@ -5078,7 +5512,7 @@ window.addEventListener('beforeunload', () => {
       badge.className = `priority-badge ${moment.priority}`;
       badge.innerHTML = `${priorityIcons[moment.priority]} ${priorityLabels[moment.priority]}`;
       section.appendChild(badge);
-      panel.appendChild(section);
+      contentDiv.appendChild(section);
     }
     
     if (moment.tags && moment.tags.length > 0) {
@@ -5095,7 +5529,7 @@ window.addEventListener('beforeunload', () => {
         tagsContainer.appendChild(tagEl);
       });
       section.appendChild(tagsContainer);
-      panel.appendChild(section);
+      contentDiv.appendChild(section);
     }
     
     if (moment.templateData && config.template) {
@@ -5130,7 +5564,7 @@ window.addEventListener('beforeunload', () => {
       });
       
       section.appendChild(chartsContainer);
-      panel.appendChild(section);
+      contentDiv.appendChild(section);
     }
     
     if (moment.codeBlocks && moment.codeBlocks.length > 0) {
@@ -5147,7 +5581,7 @@ window.addEventListener('beforeunload', () => {
       });
       
       section.appendChild(codeContainer);
-      panel.appendChild(section);
+      contentDiv.appendChild(section);
     }
     
     if (moment.tables && moment.tables.length > 0) {
@@ -5164,7 +5598,7 @@ window.addEventListener('beforeunload', () => {
       });
       
       section.appendChild(tableContainer);
-      panel.appendChild(section);
+      contentDiv.appendChild(section);
     }
     
     if (moment.attachments && moment.attachments.length > 0) {
@@ -5202,7 +5636,7 @@ window.addEventListener('beforeunload', () => {
       });
       
       section.appendChild(attachmentsContainer);
-      panel.appendChild(section);
+      contentDiv.appendChild(section);
     }
     
     // Add backlinks section
@@ -5241,10 +5675,16 @@ window.addEventListener('beforeunload', () => {
         linksSection.appendChild(incomingDiv);
       }
       
-      panel.appendChild(linksSection);
+      contentDiv.appendChild(linksSection);
     }
+
+    // Sticky footer with action buttons
+    const footer = document.createElement('div');
+    footer.className = 'detail-panel-footer';
+    footer.innerHTML = editButtonHtml + pinButtonHtml + deleteButtonHtml;
+    panel.appendChild(footer);
   }
-  
+
   function renderThreads() {
     const container = document.getElementById('threadList');
     container.innerHTML = '';
@@ -5313,9 +5753,41 @@ window.addEventListener('beforeunload', () => {
   function renderGraph() {
     const container = document.getElementById('graphContainer');
     container.innerHTML = '';
-    
+
+    // Galaxy background
+    const galaxy = document.createElement('div');
+    galaxy.className = 'graph-galaxy';
+    const starChars = ['✦', '✧', '⋆', '·', '✸', '✹'];
+    const count = 120;
+    for (let i = 0; i < count; i++) {
+      const star = document.createElement('span');
+      star.className = 'graph-star';
+      const size = 0.5 + Math.random() * 1.4;
+      const opacity = 0.2 + Math.random() * 0.6;
+      const duration = 8 + Math.random() * 20;
+      const delay = -(Math.random() * duration);
+      const dx = (Math.random() - 0.5) * 6;
+      const dy = (Math.random() - 0.5) * 6;
+      star.textContent = starChars[Math.floor(Math.random() * starChars.length)];
+      star.style.cssText = `
+        left: ${Math.random() * 100}%;
+        top: ${Math.random() * 100}%;
+        font-size: ${size}em;
+        --star-opacity: ${opacity};
+        --dx1: ${dx * 0.3}px; --dy1: ${dy * 0.5}px;
+        --dx2: ${dx * 0.7}px; --dy2: ${dy * 0.2}px;
+        --dx3: ${dx}px;       --dy3: ${dy * 0.8}px;
+        animation-duration: ${duration}s;
+        animation-delay: ${delay}s;
+        text-shadow: 0 0 ${4 + Math.random() * 6}px rgba(180,210,255,${0.4 + Math.random() * 0.5}),
+                     0 0 ${8 + Math.random() * 10}px rgba(120,160,255,${0.2 + Math.random() * 0.3});
+      `;
+      galaxy.appendChild(star);
+    }
+    container.appendChild(galaxy);
+
     if (state.moments.length === 0) {
-      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🕸️</div><h3>No Moments Yet</h3><p>Create moments with [[wikilinks]] to build your knowledge graph</p></div>';
+      container.innerHTML += '<div class="empty-state" style="position:relative;z-index:3"><div class="empty-state-icon">🕸️</div><h3>No Moments Yet</h3><p>Create moments with [[wikilinks]] to build your knowledge graph</p></div>';
       return;
     }
     
@@ -5935,14 +6407,199 @@ function renderMobileCaptureButton() {
       option.classList.toggle('active', option.dataset.theme === theme);
     });
 
+    document.querySelectorAll('.theme-swatch').forEach(s => {
+      s.classList.toggle('active', s.dataset.theme === theme);
+    });
+
     localStorage.setItem('ruby-theme', theme);
+
+    const indicator = document.getElementById('themeIndicator');
+    if (indicator) {
+      // defer so CSS var has updated
+      requestAnimationFrame(() => {
+        indicator.style.background = getComputedStyle(document.documentElement).getPropertyValue('--accent-primary').trim();
+      });
+    }
   }
+
+  window.toggleThemePopover = function(e) {
+    e.stopPropagation();
+    document.getElementById('themePopover').classList.toggle('visible');
+  };
+
+  window.closeThemePopover = function() {
+    document.getElementById('themePopover').classList.remove('visible');
+  };
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.theme-indicator-wrapper')) {
+      closeThemePopover();
+    }
+  });
 
   window.selectThemeFromModal = function(el) {
     applyTheme(el.dataset.theme);
   };
 
   loadTheme();
+
+  // ── 1. Collapsible sidebar sections ──
+  window.toggleNavSection = function(section) {
+    state.collapsedSections[section] = !state.collapsedSections[section];
+    const h3 = document.querySelector(`.nav-section h3[data-section="${section}"]`);
+    const body = document.getElementById(`nav-section-body-${section}`);
+    if (h3) h3.classList.toggle('collapsed', !!state.collapsedSections[section]);
+    if (body) body.classList.toggle('collapsed', !!state.collapsedSections[section]);
+  };
+
+  // ── 2. Resizable divider ──
+  (function setupResizeHandle() {
+    const handle = document.getElementById('timelineResizeHandle');
+    const detailPanel = document.getElementById('detailPanel');
+    if (!handle || !detailPanel) return;
+    let dragging = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    handle.addEventListener('mousedown', (e) => {
+      dragging = true;
+      startX = e.clientX;
+      startWidth = detailPanel.offsetWidth;
+      handle.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const delta = startX - e.clientX; // dragging left makes panel wider
+      const newWidth = Math.min(800, Math.max(300, startWidth + delta));
+      detailPanel.style.width = newWidth + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    });
+  })();
+
+  // ── 3. Sort order toggle ──
+  window.toggleSortOrder = function() {
+    state.sortOrder = state.sortOrder === 'desc' ? 'asc' : 'desc';
+    const label = document.getElementById('sortToggleLabel');
+    if (label) label.textContent = state.sortOrder === 'desc' ? 'Newest First' : 'Oldest First';
+    renderMoments();
+  };
+
+  // ── 4. Escape closes detail panel ──
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      // Close quick capture if open
+      const qc = document.getElementById('quickCaptureOverlay');
+      if (qc && qc.classList.contains('visible')) {
+        hideQuickCapture();
+        return;
+      }
+      // Close detail panel
+      if (state.selectedMoment) {
+        state.selectedMoment = null;
+        document.querySelectorAll('.moment-card.selected').forEach(c => c.classList.remove('selected'));
+        renderDetail();
+      }
+    }
+    // ── 8. Ctrl/Cmd+Enter triggers quick capture ──
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      const qc = document.getElementById('quickCaptureOverlay');
+      if (qc && !qc.classList.contains('visible')) {
+        showQuickCapture();
+        e.preventDefault();
+      }
+    }
+  });
+
+  // ── 6. Inline filter functions ──
+  window.onInlineFilterInput = function(value) {
+    state.inlineFilter = value;
+    const clearBtn = document.getElementById('inlineFilterClear');
+    if (clearBtn) clearBtn.classList.toggle('visible', value.length > 0);
+    renderMoments();
+  };
+
+  window.clearInlineFilter = function() {
+    state.inlineFilter = '';
+    const input = document.getElementById('inlineFilterInput');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('inlineFilterClear');
+    if (clearBtn) clearBtn.classList.remove('visible');
+    renderMoments();
+  };
+
+  // ── 8. Quick capture functions ──
+  window.showQuickCapture = function() {
+    const overlay = document.getElementById('quickCaptureOverlay');
+    if (overlay) {
+      overlay.classList.add('visible');
+      setTimeout(() => {
+        const ta = document.getElementById('quickCaptureText');
+        if (ta) ta.focus();
+      }, 50);
+    }
+  };
+
+  window.hideQuickCapture = function() {
+    const overlay = document.getElementById('quickCaptureOverlay');
+    if (overlay) overlay.classList.remove('visible');
+  };
+
+  window.submitQuickCapture = function() {
+    const textEl = document.getElementById('quickCaptureText');
+    const typeEl = document.getElementById('quickCaptureType');
+    const text = textEl ? textEl.value.trim() : '';
+    if (!text) {
+      if (textEl) textEl.focus();
+      return;
+    }
+    const type = typeEl ? typeEl.value : 'bug';
+    const newMoment = {
+      id: generateId(),
+      type: type,
+      text: text,
+      timestamp: Date.now(),
+      context: { service: '', environment: 'production', version: '' },
+      charts: [],
+      codeBlocks: [],
+      tables: [],
+      attachments: [],
+      templateData: {},
+      tags: [],
+      priority: null,
+      threadId: state.selectedThread && state.selectedThread !== 'unthreaded' ? state.selectedThread : null
+    };
+    state.moments.unshift(newMoment);
+    if (textEl) textEl.value = '';
+    hideQuickCapture();
+    saveData();
+    render();
+  };
+
+  // Allow Ctrl+Enter inside quick capture textarea to submit
+  // (handled globally in the keydown listener, but also directly on the textarea)
+  (function bindQCTextarea() {
+    const qcTextarea = document.getElementById('quickCaptureText');
+    if (qcTextarea) {
+      qcTextarea.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          submitQuickCapture();
+        }
+      });
+    }
+  })();
   
 document.getElementById('newThreadBtn').addEventListener('click', () => {
   const name = prompt('Thread name:');
