@@ -209,7 +209,8 @@
     }
     
     .logo {
-display: flex;;
+      display: flex;
+      align-items: center;
       letter-spacing: -0.5px;
       margin-bottom: 2px;
       text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
@@ -940,7 +941,7 @@ display: flex;;
     
     /* Detail Panel */
     .detail-panel {
-      width: 450px;
+      width: 600px;
       background: rgba(15, 23, 42, 0.8);
       backdrop-filter: blur(20px);
       border-left: 1px solid var(--border-color);
@@ -1413,7 +1414,93 @@ display: flex;;
       display: inline-block;
       margin-bottom: 8px;
     }
-    
+
+    .pinned-section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #ffd700;
+      margin-bottom: 10px;
+      margin-top: 4px;
+    }
+
+    .pinned-section-header svg {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+
+    .pinned-section-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 215, 0, 0.25);
+    }
+
+    .timeline-section-divider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      margin-top: 14px;
+    }
+
+    .timeline-section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-color);
+    }
+
+    .moment-card.pinned-to-top {
+      border-left-color: #ffd700 !important;
+      box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.18);
+    }
+
+    .pin-top-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 3px;
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.2s, color 0.2s, background 0.2s;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .moment-card:hover .pin-top-btn {
+      opacity: 1;
+    }
+
+    .pin-top-btn:hover {
+      background: rgba(255, 215, 0, 0.15);
+      color: #ffd700;
+    }
+
+    .pin-top-btn.active {
+      opacity: 1;
+      color: #ffd700;
+    }
+
+    .moment-card {
+      position: relative;
+    }
+
     .tags-input-container {
       position: relative;
       margin-top: 8px;
@@ -2844,57 +2931,17 @@ display: flex;;
             <polyline points="7 3 7 8 15 8"/>
           </svg>
         </div>
-        
-        <div class="theme-selector">
-          <button class="theme-btn" id="themeToggle">
-            <span><svg class="icon-action" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg> Theme: <span id="currentThemeName">Ruby Classic</span></span>
-            <span>▼</span>
-          </button>
-          <div class="theme-dropdown" id="themeDropdown">
-            <div class="theme-option active" data-theme="classic">
-              <div class="theme-color-preview" style="background: #00d4ff;"></div>
-              <span class="theme-name">Ruby Classic</span>
-            </div>
-            <div class="theme-option" data-theme="ruby-noir">
-              <div class="theme-color-preview" style="background: #e0115f;"></div>
-              <span class="theme-name">Ruby Noir</span>
-            </div>
-            <div class="theme-option" data-theme="ruby-twilight">
-              <div class="theme-color-preview" style="background: #a78bfa;"></div>
-              <span class="theme-name">Ruby Twilight</span>
-            </div>
-            <div class="theme-option" data-theme="ruby-forest">
-              <div class="theme-color-preview" style="background: #34d399;"></div>
-              <span class="theme-name">Ruby Forest</span>
-            </div>
-            <div class="theme-option" data-theme="ruby-ocean">
-              <div class="theme-color-preview" style="background: #3b82f6;"></div>
-              <span class="theme-name">Ruby Ocean</span>
-            </div>
-            <div class="theme-option" data-theme="ruby-ember">
-              <div class="theme-color-preview" style="background: #f59e0b;"></div>
-              <span class="theme-name">Ruby Ember</span>
-            </div>
-            <div class="theme-option" data-theme="ruby-slate">
-              <div class="theme-color-preview" style="background: #58a6ff;"></div>
-              <span class="theme-name">Ruby Slate</span>
-            </div>
-            <div class="theme-option" data-theme="ruby-midnight">
-              <div class="theme-color-preview" style="background: #60a5fa;"></div>
-              <span class="theme-name">Ruby Midnight</span>
-            </div>
-            <div class="theme-option" data-theme="ruby-crimson">
-              <div class="theme-color-preview" style="background: #fb7185;"></div>
-              <span class="theme-name">Ruby Crimson</span>
-            </div>
-            <div class="theme-option" data-theme="ruby-cosmic">
-              <div class="theme-color-preview" style="background: #c084fc;"></div>
-              <span class="theme-name">Ruby Cosmic</span>
-            </div>
-          </div>
-        </div>
       </div>
-      
+
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 4px;">
+        <button class="btn-primary" id="captureMomentBtn" style="width: 100%; margin: 0;">
+          <svg class="icon-action" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Capture Moment
+        </button>
+        <button class="btn-secondary" id="newThreadBtn" style="width: 100%;">
+          <svg class="icon-action" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> New Thread
+        </button>
+      </div>
+
       <div class="nav-section">
         <h3>Views</h3>
         <div class="nav-item active" data-view="timeline">
@@ -2977,9 +3024,6 @@ display: flex;;
         
         <h3>Threads</h3>
         <div class="thread-list" id="threadList"></div>
-        <button class="btn-secondary" id="newThreadBtn" style="margin-top: 12px; width: 100%;">
-          <svg class="icon-action" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> New Thread
-        </button>
         
         <div id="unthreadedFilter" class="filter-item hidden" style="margin-top: 12px;">
           <div class="filter-label">
@@ -2989,9 +3033,6 @@ display: flex;;
         </div>
       </div>
       
-      <button class="btn-primary" id="captureMomentBtn">
-        <svg class="icon-action" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> Capture Moment
-      </button>
     </div>
     
     <!-- Timeline View -->
@@ -3262,6 +3303,50 @@ display: flex;;
           <li>Edit moments to add more information as situations develop</li>
         </ul>
         
+        <h3>🎨 Theme</h3>
+        <div id="modalThemeGrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+          <div class="theme-option" data-theme="classic" onclick="selectThemeFromModal(this)">
+            <div class="theme-color-preview" style="background: #00d4ff;"></div>
+            <span class="theme-name">Ruby Classic</span>
+          </div>
+          <div class="theme-option" data-theme="ruby-noir" onclick="selectThemeFromModal(this)">
+            <div class="theme-color-preview" style="background: #e0115f;"></div>
+            <span class="theme-name">Ruby Noir</span>
+          </div>
+          <div class="theme-option" data-theme="ruby-twilight" onclick="selectThemeFromModal(this)">
+            <div class="theme-color-preview" style="background: #a78bfa;"></div>
+            <span class="theme-name">Ruby Twilight</span>
+          </div>
+          <div class="theme-option" data-theme="ruby-forest" onclick="selectThemeFromModal(this)">
+            <div class="theme-color-preview" style="background: #34d399;"></div>
+            <span class="theme-name">Ruby Forest</span>
+          </div>
+          <div class="theme-option" data-theme="ruby-ocean" onclick="selectThemeFromModal(this)">
+            <div class="theme-color-preview" style="background: #3b82f6;"></div>
+            <span class="theme-name">Ruby Ocean</span>
+          </div>
+          <div class="theme-option" data-theme="ruby-ember" onclick="selectThemeFromModal(this)">
+            <div class="theme-color-preview" style="background: #f59e0b;"></div>
+            <span class="theme-name">Ruby Ember</span>
+          </div>
+          <div class="theme-option" data-theme="ruby-slate" onclick="selectThemeFromModal(this)">
+            <div class="theme-color-preview" style="background: #58a6ff;"></div>
+            <span class="theme-name">Ruby Slate</span>
+          </div>
+          <div class="theme-option" data-theme="ruby-midnight" onclick="selectThemeFromModal(this)">
+            <div class="theme-color-preview" style="background: #60a5fa;"></div>
+            <span class="theme-name">Ruby Midnight</span>
+          </div>
+          <div class="theme-option" data-theme="ruby-crimson" onclick="selectThemeFromModal(this)">
+            <div class="theme-color-preview" style="background: #fb7185;"></div>
+            <span class="theme-name">Ruby Crimson</span>
+          </div>
+          <div class="theme-option" data-theme="ruby-cosmic" onclick="selectThemeFromModal(this)">
+            <div class="theme-color-preview" style="background: #c084fc;"></div>
+            <span class="theme-name">Ruby Cosmic</span>
+          </div>
+        </div>
+
         <h3>💾 File Management</h3>
         <div id="autoSaveStatus" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; padding: 12px; background: rgba(81, 207, 102, 0.1); border: 1px solid rgba(81, 207, 102, 0.3); border-radius: 8px; display: none;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
@@ -4695,7 +4780,30 @@ window.addEventListener('beforeunload', () => {
     }
     
     container.innerHTML = '';
-    displayMoments.forEach(moment => {
+
+    const pinnedMoments = displayMoments.filter(m => m.pinnedToTop);
+    const unpinnedMoments = displayMoments.filter(m => !m.pinnedToTop);
+    const orderedMoments = [...pinnedMoments, ...unpinnedMoments];
+
+    let pinnedHeaderAdded = false;
+    let unpinnedHeaderAdded = false;
+
+    orderedMoments.forEach(moment => {
+      if (moment.pinnedToTop && !pinnedHeaderAdded) {
+        const header = document.createElement('div');
+        header.className = 'pinned-section-header';
+        header.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg> Pinned`;
+        container.appendChild(header);
+        pinnedHeaderAdded = true;
+      }
+      if (!moment.pinnedToTop && !unpinnedHeaderAdded && pinnedMoments.length > 0) {
+        const divider = document.createElement('div');
+        divider.className = 'timeline-section-divider';
+        divider.textContent = 'Timeline';
+        container.appendChild(divider);
+        unpinnedHeaderAdded = true;
+      }
+
       const config = MOMENT_TYPES[moment.type];
       const card = document.createElement('div');
       card.className = 'moment-card';
@@ -4703,7 +4811,10 @@ window.addEventListener('beforeunload', () => {
         card.classList.add('selected');
       }
       card.style.borderLeftColor = config.color;
-      
+      if (moment.pinnedToTop) {
+        card.classList.add('pinned-to-top');
+      }
+
       let contextHtml = '';
       if (moment.context.service || moment.context.environment || moment.context.version) {
         contextHtml = '<div class="moment-context">';
@@ -4742,7 +4853,17 @@ window.addEventListener('beforeunload', () => {
         <div class="moment-text">${parseMarkdown(moment.text)}</div>
         ${contextHtml}
       `;
-      
+
+      const pinBtn = document.createElement('button');
+      pinBtn.className = 'pin-top-btn' + (moment.pinnedToTop ? ' active' : '');
+      pinBtn.title = moment.pinnedToTop ? 'Unpin from top' : 'Pin to top';
+      pinBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="${moment.pinnedToTop ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>`;
+      pinBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePinToTop(moment.id);
+      });
+      card.appendChild(pinBtn);
+
       if (moment.tags && moment.tags.length > 0) {
         const tagsContainer = document.createElement('div');
         tagsContainer.className = 'moment-tags';
@@ -4865,7 +4986,13 @@ window.addEventListener('beforeunload', () => {
         <svg class="icon-action" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg> Delete Moment
       </button>
     `;
-    
+
+    let pinButtonHtml = `
+      <button class="btn-secondary" onclick="togglePinToTop('${moment.id}')" style="${moment.pinnedToTop ? 'color:#ffd700;border-color:rgba(255,215,0,0.4);' : ''}">
+        <svg class="icon-action" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${moment.pinnedToTop ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg> ${moment.pinnedToTop ? 'Unpin from Top' : 'Pin to Top'}
+      </button>
+    `;
+
     let threadAssignmentHtml = '';
     const momentThread = moment.threadId ? state.threads.find(t => t.id === moment.threadId) : null;
     
@@ -4920,6 +5047,7 @@ window.addEventListener('beforeunload', () => {
     
     panel.innerHTML = `
       ${editButtonHtml}
+      ${pinButtonHtml}
       ${deleteButtonHtml}
       ${threadAssignmentHtml}
       <div class="detail-header">
@@ -5802,36 +5930,18 @@ function renderMobileCaptureButton() {
     } else {
       document.documentElement.setAttribute('data-theme', theme);
     }
-    
-    document.getElementById('currentThemeName').textContent = themeNames[theme] || 'Classic';
-    
+
     document.querySelectorAll('.theme-option').forEach(option => {
       option.classList.toggle('active', option.dataset.theme === theme);
     });
-    
+
     localStorage.setItem('ruby-theme', theme);
   }
-  
-  document.getElementById('themeToggle').addEventListener('click', (e) => {
-    e.stopPropagation();
-    document.getElementById('themeDropdown').classList.toggle('visible');
-  });
-  
-  document.querySelectorAll('.theme-option').forEach(option => {
-    option.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const theme = option.dataset.theme;
-      applyTheme(theme);
-      document.getElementById('themeDropdown').classList.remove('visible');
-    });
-  });
-  
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.theme-selector')) {
-      document.getElementById('themeDropdown').classList.remove('visible');
-    }
-  });
-  
+
+  window.selectThemeFromModal = function(el) {
+    applyTheme(el.dataset.theme);
+  };
+
   loadTheme();
   
 document.getElementById('newThreadBtn').addEventListener('click', () => {
@@ -6491,6 +6601,18 @@ function showConfirmModal(title, message, icon, onConfirm) {
     confirmCallback = null;
   }
   
+  window.togglePinToTop = function(momentId) {
+    const moment = state.moments.find(m => m.id === momentId);
+    if (!moment) return;
+    moment.pinnedToTop = !moment.pinnedToTop;
+    saveData();
+    renderMoments();
+    if (state.selectedMoment?.id === momentId) {
+      state.selectedMoment = moment;
+      renderDetail();
+    }
+  };
+
   window.confirmDeleteMoment = function(momentId) {
     const moment = state.moments.find(m => m.id === momentId);
     if (!moment) return;
