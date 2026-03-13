@@ -5703,6 +5703,10 @@ async function loadData() {
           const valid = savedThread === 'unthreaded' || state.threads.some(t => t.id === savedThread);
           if (valid) state.selectedThread = savedThread;
         }
+        if (data.selectedMomentId) {
+          const m = state.moments.find(m => m.id === data.selectedMomentId);
+          if (m) state.selectedMoment = m;
+        }
         state.autoSaveFileHandle = fileHandle;
         state.autoSaveEnabled = true;
         
@@ -5802,6 +5806,11 @@ async function loadData() {
       const valid = savedThread === 'unthreaded' || state.threads.some(t => t.id === savedThread);
       if (valid) state.selectedThread = savedThread;
     }
+    const savedMomentId = localStorage.getItem('ruby-selected-moment');
+    if (savedMomentId) {
+      const m = state.moments.find(m => m.id === savedMomentId);
+      if (m) state.selectedMoment = m;
+    }
 
     updateAutoSaveUI();
     render();
@@ -5830,6 +5839,12 @@ function saveData() {
     localStorage.setItem('trace-threads', JSON.stringify(state.threads));
     localStorage.setItem('ruby-whiteboard-tiles', JSON.stringify(state.whiteboardTiles));
     localStorage.setItem('ruby-whiteboard-links', JSON.stringify(state.whiteboardLinks));
+    const selectedMomentId = state.selectedMoment?.id || (typeof state.selectedMoment === 'string' ? state.selectedMoment : null);
+    if (selectedMomentId) {
+      localStorage.setItem('ruby-selected-moment', selectedMomentId);
+    } else {
+      localStorage.removeItem('ruby-selected-moment');
+    }
     console.log('Data saved to localStorage:', { moments: state.moments.length, threads: state.threads.length });
   } catch (error) {
     console.error('Failed to save data to localStorage:', error);
@@ -10478,13 +10493,15 @@ Return only: ["id1", "id2", ...]`
     if (!state.autoSaveFileHandle) return;
     
     try {
+      const selectedMomentId = state.selectedMoment?.id || (typeof state.selectedMoment === 'string' ? state.selectedMoment : null);
       const exportData = {
         version: '1.0',
         exportDate: new Date().toISOString(),
         moments: state.moments,
         threads: state.threads,
         whiteboardTiles: state.whiteboardTiles,
-        whiteboardLinks: state.whiteboardLinks
+        whiteboardLinks: state.whiteboardLinks,
+        selectedMomentId: selectedMomentId || null
       };
 
       const jsonStr = JSON.stringify(exportData, null, 2);
