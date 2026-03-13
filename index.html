@@ -3533,7 +3533,7 @@
   transform: translateY(100%);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.quick-capture-overlay.visible {
+.quick-capture-overlay.open {
   transform: translateY(0);
 }
 .quick-capture-header {
@@ -3624,6 +3624,275 @@
   }
 }
 
+  /* ── Search filters ─────────────────────────────────────────────────────── */
+  .search-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 16px 0;
+  }
+  .search-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .search-filter-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-right: 2px;
+  }
+  .sf-pill {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .sf-pill:hover { border-color: var(--accent-primary); color: var(--text-primary); }
+  .sf-pill.active {
+    background: rgba(var(--accent-rgb, 0,212,255), 0.15);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+  }
+  .sf-divider {
+    width: 1px;
+    height: 14px;
+    background: var(--border-color);
+    margin: 0 4px;
+    align-self: center;
+  }
+  .search-results-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 6px 16px 0;
+  }
+
+  /* ── On This Day banner ─────────────────────────────────────────────────── */
+  .on-this-day-banner {
+    margin: 0 0 12px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    overflow: hidden;
+  }
+  .on-this-day-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .on-this-day-header:hover { background: rgba(255,255,255,0.04); }
+  .on-this-day-icon { font-size: 14px; }
+  .on-this-day-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-primary);
+    flex: 1;
+  }
+  .on-this-day-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 1px 7px;
+  }
+  .on-this-day-chevron {
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 14px; height: 14px;
+  }
+  .on-this-day-banner.expanded .on-this-day-chevron { transform: rotate(180deg); }
+  .on-this-day-body { display: none; border-top: 1px solid var(--border-color); }
+  .on-this-day-banner.expanded .on-this-day-body { display: block; }
+  .on-this-day-group { padding: 10px 12px 6px; }
+  .on-this-day-group-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .on-this-day-card {
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .on-this-day-card:hover { border-color: var(--accent-primary); }
+  .on-this-day-card-type { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+  .on-this-day-card-text { font-size: 12px; color: var(--text-primary); line-height: 1.4; }
+
+  /* ── Quick Capture overlay ──────────────────────────────────────────────── */
+  .quick-capture-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200000;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 80px;
+  }
+  .quick-capture-overlay.open { display: flex; }
+  .quick-capture-modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    width: 560px;
+    max-width: 95vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    overflow: hidden;
+    animation: qcSlideIn 0.18s ease;
+  }
+  @keyframes qcSlideIn {
+    from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .qc-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .qc-header-title { font-size: 13px; font-weight: 600; color: var(--text-primary); flex: 1; }
+  .qc-kbd {
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: monospace;
+  }
+  .qc-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1;
+  }
+  .qc-close:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  .qc-type-bar {
+    display: flex;
+    gap: 4px;
+    padding: 10px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .qc-type-bar::-webkit-scrollbar { display: none; }
+  .qc-type-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    padding: 5px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .qc-type-pill svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .qc-type-pill:hover { border-color: var(--accent-primary); }
+  .qc-type-pill.active {
+    color: var(--pill-color, var(--accent-primary));
+    border-color: var(--pill-color, var(--accent-primary));
+    background: color-mix(in srgb, var(--pill-color, var(--accent-primary)) 12%, transparent);
+  }
+  .qc-textarea {
+    width: 100%;
+    min-height: 100px;
+    background: transparent;
+    border: none;
+    padding: 4px 16px 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    box-sizing: border-box;
+    line-height: 1.6;
+  }
+  .qc-textarea::placeholder { color: var(--text-muted); }
+  .qc-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    gap: 8px;
+  }
+  .qc-thread-select {
+    font-size: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 6px;
+    padding: 4px 8px;
+    flex: 1;
+    max-width: 200px;
+  }
+  .qc-submit {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.15s;
+  }
+  .qc-submit:hover { opacity: 0.85; }
+  .qc-submit kbd { font-size: 10px; opacity: 0.7; font-family: monospace; }
+
+  /* ── Markdown export btn in sidebar ────────────────────────────────────── */
+  .sidebar-tools {
+    padding: 0 12px 8px;
+    display: flex;
+    gap: 6px;
+  }
+  .sidebar-tool-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .sidebar-tool-btn:hover { border-color: var(--accent-primary); color: var(--text-primary); }
+  .sidebar-tool-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
@@ -3689,6 +3958,16 @@
         </button>
         <button class="btn-secondary" id="newThreadBtn" style="width: 100%;">
           <svg class="icon-action" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> New Thread
+        </button>
+      </div>
+      <div class="sidebar-tools">
+        <button class="sidebar-tool-btn" onclick="openQuickCapture()" title="Quick Capture (Ctrl+K)">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Quick <kbd style="font-size:9px;opacity:0.6;font-family:monospace;margin-left:2px;">Ctrl+K</kbd>
+        </button>
+        <button class="sidebar-tool-btn" onclick="exportToMarkdown()" title="Export to Markdown">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          Export MD
         </button>
       </div>
 
@@ -3833,6 +4112,7 @@
           <input class="inline-filter-input" id="inlineFilterInput" type="text" placeholder="Filter moments..." autocomplete="off" oninput="onInlineFilterInput(this.value)">
           <button class="inline-filter-clear" id="inlineFilterClear" onclick="clearInlineFilter()" title="Clear filter">×</button>
         </div>
+        <div id="onThisDayBanner"></div>
         <div id="momentsList"></div>
       </div>
 
@@ -3842,29 +4122,6 @@
       <div class="detail-panel" id="detailPanel"></div>
     </div>
 
-    <!-- Quick Capture Overlay -->
-    <div class="quick-capture-overlay" id="quickCaptureOverlay">
-      <div class="quick-capture-header">
-        <span class="quick-capture-title">Quick Capture</span>
-        <button class="quick-capture-close" onclick="hideQuickCapture()" title="Close">×</button>
-      </div>
-      <div class="quick-capture-body">
-        <textarea class="quick-capture-textarea" id="quickCaptureText" rows="2" placeholder="What's on your mind?"></textarea>
-        <select class="quick-capture-type" id="quickCaptureType">
-          <option value="bug">Bug</option>
-          <option value="meeting">Meeting</option>
-          <option value="decision">Decision</option>
-          <option value="codereview">Code Review</option>
-          <option value="research">Research</option>
-          <option value="question">Question</option>
-          <option value="implementation">Implementation</option>
-          <option value="feature">Feature</option>
-        </select>
-        <button class="quick-capture-submit" onclick="submitQuickCapture()">Capture</button>
-      </div>
-      <div class="quick-capture-hint">Ctrl+Enter or Cmd+Enter to open · Esc to close</div>
-    </div>
-    
     <!-- Capture View -->
     <div class="capture-view" id="captureView">
       <div class="capture-header">
@@ -4004,21 +4261,39 @@
     <div class="search-view" id="searchView">
       <div class="search-header">
         <div class="search-box">
-          <input id="searchInput" class="search-input" placeholder="Search moments, tags (#latency), or priority (critical, pinned)...">
-          <button class="btn-search" id="searchBtn">
-            🔍 Search
-          </button>
-        </div>
-        <div class="search-hint">
-          Try: "times deploys increased errors", "ideas during outages", "thoughts about scaling"
+          <input id="searchInput" class="search-input" placeholder="Search by keyword or meaning…">
+          <button class="btn-search" id="searchBtn">Search</button>
         </div>
       </div>
-      
+      <!-- Filter bar -->
+      <div class="search-filter-bar" id="searchFilterBar">
+        <div class="search-filter-group">
+          <span class="search-filter-label">Type</span>
+          <span class="sf-pill active" data-sf-type="all">All</span>
+          <span class="sf-pill" data-sf-type="bug">Bug</span>
+          <span class="sf-pill" data-sf-type="meeting">Meeting</span>
+          <span class="sf-pill" data-sf-type="decision">Decision</span>
+          <span class="sf-pill" data-sf-type="codereview">Code Review</span>
+          <span class="sf-pill" data-sf-type="research">Research</span>
+          <span class="sf-pill" data-sf-type="question">Question</span>
+          <span class="sf-pill" data-sf-type="implementation">Impl</span>
+          <span class="sf-pill" data-sf-type="feature">Feature</span>
+        </div>
+        <div class="sf-divider"></div>
+        <div class="search-filter-group">
+          <span class="search-filter-label">Date</span>
+          <span class="sf-pill active" data-sf-date="all">All time</span>
+          <span class="sf-pill" data-sf-date="today">Today</span>
+          <span class="sf-pill" data-sf-date="week">This week</span>
+          <span class="sf-pill" data-sf-date="month">This month</span>
+        </div>
+      </div>
+      <div class="search-results-count" id="searchResultsCount"></div>
       <div class="search-results" id="searchResults">
         <div class="empty-state">
           <div class="empty-state-icon">🔍</div>
-          <h3>Semantic Search</h3>
-          <p>Search your moments by meaning, not just keywords</p>
+          <h3>Search your moments</h3>
+          <p>Filter by type or date, or search by keyword and meaning</p>
         </div>
       </div>
     </div>
@@ -4085,6 +4360,30 @@
       <div class="whiteboard-canvas-outer" id="wbCanvasOuter">
         <div class="whiteboard-canvas" id="wbCanvas">
           <svg class="wb-links-svg" id="wbLinksSvg"></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Capture Overlay -->
+    <div class="quick-capture-overlay" id="quickCaptureOverlay" onclick="qcBackdropClick(event)">
+      <div class="quick-capture-modal">
+        <div class="qc-header">
+          <span class="qc-header-title">
+            <svg style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Quick Capture
+          </span>
+          <kbd class="qc-kbd">Ctrl+K</kbd>
+          <button class="qc-close" onclick="closeQuickCapture()">✕</button>
+        </div>
+        <div class="qc-type-bar" id="qcTypeBar"></div>
+        <textarea class="qc-textarea" id="qcText" placeholder="What's on your mind?" rows="4"></textarea>
+        <div class="qc-footer">
+          <select class="qc-thread-select" id="qcThreadSelect">
+            <option value="">No thread</option>
+          </select>
+          <button class="qc-submit" onclick="submitQuickCapture()">
+            Capture <kbd>↵</kbd>
+          </button>
         </div>
       </div>
     </div>
@@ -5636,10 +5935,333 @@ window.addEventListener('beforeunload', () => {
     return container.children.length > 0 ? container : null;
   }
   
+  // ── Shared moment card builder ───────────────────────────────────────────
+  function buildMomentCard(moment) {
+    if (!moment) return null;
+    const config = MOMENT_TYPES[moment.type] || { color: 'var(--text-muted)', icon: '', label: moment.type };
+    const card = document.createElement('div');
+    card.className = 'moment-card';
+    card.style.borderLeftColor = config.color;
+
+    let priorityHtml = '';
+    if (moment.priority) {
+      const pIcons = { critical: `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="#E0115F"/></svg>`, 'follow-up': `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="#ff922b"/></svg>`, pinned: `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#ffd700"/></svg>` };
+      const pLabels = { critical: 'Critical', 'follow-up': 'Follow-up', pinned: 'Pinned' };
+      priorityHtml = `<div class="moment-priority"><span class="priority-badge ${moment.priority}">${pIcons[moment.priority]} ${pLabels[moment.priority]}</span></div>`;
+    }
+
+    const thread = state.threads.find(t => t.id === moment.threadId);
+    const threadBadge = thread ? `<div class="moment-thread-badge"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17h.01"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg> ${thread.name}</div>` : '';
+
+    card.innerHTML = `
+      ${threadBadge}${priorityHtml}
+      <div class="moment-header">
+        <div class="moment-type" style="color:${config.color}">${config.icon} ${config.label}</div>
+      </div>
+      <div class="moment-time"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${formatTime(moment.timestamp)}</div>
+      <div class="moment-text">${parseMarkdown(moment.text || '')}</div>
+    `;
+
+    if (moment.tags && moment.tags.length) {
+      const tags = document.createElement('div');
+      tags.className = 'moment-tags';
+      moment.tags.forEach(tag => {
+        const t = document.createElement('span');
+        t.className = 'moment-tag';
+        t.textContent = '#' + tag;
+        tags.appendChild(t);
+      });
+      card.appendChild(tags);
+    }
+
+    card.addEventListener('click', () => {
+      state.selectedMoment = moment.id;
+      state.view = 'timeline';
+      render();
+    });
+    return card;
+  }
+
+  // ── On This Day ─────────────────────────────────────────────────────────
+  function renderOnThisDay() {
+    const el = document.getElementById('onThisDayBanner');
+    if (!el) return;
+    const now = Date.now();
+    const DAY = 86400000;
+    const lookbacks = [
+      { label: '1 week ago',  from: now - 9*DAY,  to: now - 5*DAY },
+      { label: '1 month ago', from: now - 33*DAY, to: now - 27*DAY },
+      { label: '3 months ago',from: now - 95*DAY, to: now - 85*DAY },
+      { label: '1 year ago',  from: now - 368*DAY,to: now - 362*DAY },
+    ];
+    const groups = lookbacks.map(lb => ({
+      label: lb.label,
+      moments: state.moments.filter(m => m.timestamp >= lb.from && m.timestamp <= lb.to)
+    })).filter(g => g.moments.length > 0);
+
+    if (groups.length === 0) { el.innerHTML = ''; return; }
+    const total = groups.reduce((s, g) => s + g.moments.length, 0);
+    const chevronSvg = `<svg class="on-this-day-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+    const banner = document.createElement('div');
+    banner.className = 'on-this-day-banner';
+    banner.innerHTML = `
+      <div class="on-this-day-header">
+        <span class="on-this-day-icon">🕰️</span>
+        <span class="on-this-day-title">On This Day</span>
+        <span class="on-this-day-count">${total} moment${total !== 1 ? 's' : ''}</span>
+        ${chevronSvg}
+      </div>
+      <div class="on-this-day-body" id="onThisDayBody"></div>
+    `;
+    banner.querySelector('.on-this-day-header').addEventListener('click', () => {
+      banner.classList.toggle('expanded');
+    });
+    const body = banner.querySelector('#onThisDayBody');
+    groups.forEach(g => {
+      const group = document.createElement('div');
+      group.className = 'on-this-day-group';
+      group.innerHTML = `<div class="on-this-day-group-label">${g.label}</div>`;
+      g.moments.slice(0, 5).forEach(m => {
+        const cfg = MOMENT_TYPES[m.type] || {};
+        const card = document.createElement('div');
+        card.className = 'on-this-day-card';
+        card.innerHTML = `
+          <div class="on-this-day-card-type" style="color:${cfg.color||'var(--text-muted)'}">
+            ${cfg.icon||''} ${cfg.label||m.type} &middot; ${formatTime(m.timestamp)}
+          </div>
+          <div class="on-this-day-card-text">${(m.text||'').slice(0, 120)}${m.text && m.text.length > 120 ? '…' : ''}</div>
+        `;
+        card.addEventListener('click', () => {
+          state.selectedMoment = m.id;
+          render();
+        });
+        group.appendChild(card);
+      });
+      if (g.moments.length > 5) {
+        const more = document.createElement('div');
+        more.style.cssText = 'font-size:11px;color:var(--text-muted);padding:4px 0 2px;';
+        more.textContent = `+${g.moments.length - 5} more`;
+        group.appendChild(more);
+      }
+      body.appendChild(group);
+    });
+    el.innerHTML = '';
+    el.appendChild(banner);
+  }
+
+  // ── Export to Markdown ───────────────────────────────────────────────────
+  window.exportToMarkdown = function() {
+    const lines = [];
+    const date = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+    lines.push('# RUBY Export');
+    lines.push('');
+    lines.push(`**Exported:** ${date}  `);
+    lines.push(`**Total moments:** ${state.moments.length}  `);
+    lines.push(`**Threads:** ${state.threads.length}`);
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+
+    // Group moments by thread
+    const threadOrder = [...state.threads];
+    const byThread = {};
+    state.moments.forEach(m => {
+      const key = m.threadId || '__none__';
+      if (!byThread[key]) byThread[key] = [];
+      byThread[key].push(m);
+    });
+
+    // Sort moments within groups newest-first
+    Object.values(byThread).forEach(arr => arr.sort((a, b) => b.timestamp - a.timestamp));
+
+    const writeGroup = (name, moments) => {
+      lines.push(`## ${name}`);
+      lines.push('');
+      moments.forEach(m => {
+        const cfg = MOMENT_TYPES[m.type] || {};
+        const ts = new Date(m.timestamp).toLocaleString();
+        lines.push(`### ${cfg.icon || ''} ${cfg.label || m.type} — ${ts}`);
+        if (m.tags && m.tags.length) lines.push(`**Tags:** ${m.tags.join(', ')}`);
+        if (m.priority) lines.push(`**Priority:** ${m.priority}`);
+        lines.push('');
+        if (m.text) lines.push(m.text);
+        if (m.codeBlocks && m.codeBlocks.length) {
+          m.codeBlocks.forEach(cb => {
+            lines.push('');
+            lines.push('```' + (cb.language || ''));
+            lines.push(cb.code || '');
+            lines.push('```');
+          });
+        }
+        if (m.charts && m.charts.length) {
+          lines.push('');
+          lines.push(`*${m.charts.length} chart(s) attached*`);
+        }
+        lines.push('');
+        lines.push('---');
+        lines.push('');
+      });
+    };
+
+    threadOrder.forEach(t => {
+      if (byThread[t.id] && byThread[t.id].length) {
+        writeGroup(t.name, byThread[t.id]);
+      }
+    });
+    if (byThread['__none__'] && byThread['__none__'].length) {
+      writeGroup('Unthreaded', byThread['__none__']);
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ruby-export-${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // ── Quick Capture overlay ────────────────────────────────────────────────
+  let qcType = 'bug';
+  const QC_TYPES = ['bug','meeting','decision','codereview','research','question','implementation','feature'];
+
+  function buildQcTypeBar() {
+    const bar = document.getElementById('qcTypeBar');
+    if (!bar || bar.dataset.built) return;
+    bar.dataset.built = '1';
+    QC_TYPES.forEach(t => {
+      const cfg = MOMENT_TYPES[t] || {};
+      const pill = document.createElement('span');
+      pill.className = 'qc-type-pill' + (t === qcType ? ' active' : '');
+      pill.style.setProperty('--pill-color', cfg.color || 'var(--accent-primary)');
+      pill.innerHTML = cfg.icon || '';
+      pill.title = cfg.label || t;
+      pill.dataset.type = t;
+      pill.addEventListener('click', () => {
+        qcType = t;
+        bar.querySelectorAll('.qc-type-pill').forEach(p => p.classList.toggle('active', p.dataset.type === t));
+      });
+      bar.appendChild(pill);
+    });
+  }
+
+  function populateQcThreads() {
+    const sel = document.getElementById('qcThreadSelect');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">No thread</option>';
+    state.threads.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.name;
+      if (state.selectedThread === t.id) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  window.openQuickCapture = function() {
+    const overlay = document.getElementById('quickCaptureOverlay');
+    if (!overlay) return;
+    buildQcTypeBar();
+    populateQcThreads();
+    overlay.classList.add('open');
+    setTimeout(() => document.getElementById('qcText')?.focus(), 80);
+  };
+
+  window.closeQuickCapture = function() {
+    const overlay = document.getElementById('quickCaptureOverlay');
+    if (overlay) overlay.classList.remove('open');
+    const ta = document.getElementById('qcText');
+    if (ta) ta.value = '';
+  };
+
+  window.qcBackdropClick = function(e) {
+    if (e.target === document.getElementById('quickCaptureOverlay')) closeQuickCapture();
+  };
+
+  window.submitQuickCapture = function() {
+    const text = (document.getElementById('qcText')?.value || '').trim();
+    if (!text) { document.getElementById('qcText')?.focus(); return; }
+    const threadId = document.getElementById('qcThreadSelect')?.value || null;
+    const newMoment = {
+      id: generateId(),
+      type: qcType,
+      text,
+      timestamp: Date.now(),
+      threadId: threadId || (state.selectedThread && state.selectedThread !== 'unthreaded' ? state.selectedThread : null),
+      context: { service: '', environment: 'production', version: '' },
+      tags: [],
+      charts: [],
+      codeBlocks: [],
+      tables: [],
+      attachments: [],
+      templateData: {},
+      priority: null
+    };
+    state.moments.unshift(newMoment);
+    saveData();
+    closeQuickCapture();
+    render();
+  };
+
+  // ── Search with filters ──────────────────────────────────────────────────
+  let searchFilters = { type: 'all', date: 'all' };
+
+  function applySearchFilters(moments) {
+    let result = moments;
+    if (searchFilters.type !== 'all') {
+      result = result.filter(m => m.type === searchFilters.type);
+    }
+    const now = Date.now();
+    const DAY = 86400000;
+    if (searchFilters.date === 'today') {
+      const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+      result = result.filter(m => m.timestamp >= startOfDay.getTime());
+    } else if (searchFilters.date === 'week') {
+      result = result.filter(m => m.timestamp >= now - 7*DAY);
+    } else if (searchFilters.date === 'month') {
+      result = result.filter(m => m.timestamp >= now - 30*DAY);
+    }
+    return result;
+  }
+
+  function renderSearchResults(moments, query) {
+    const container = document.getElementById('searchResults');
+    const countEl = document.getElementById('searchResultsCount');
+    if (!container) return;
+    if (moments.length === 0) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><h3>No results</h3><p>Try adjusting your filters or search terms</p></div>`;
+      if (countEl) countEl.textContent = '';
+      return;
+    }
+    if (countEl) countEl.textContent = `${moments.length} result${moments.length !== 1 ? 's' : ''}${query ? ' for "' + query + '"' : ''}`;
+    container.innerHTML = '';
+    moments.forEach(m => {
+      const card = buildMomentCard(m);
+      if (card) container.appendChild(card);
+    });
+  }
+
+  function runLocalSearch(query) {
+    let pool = applySearchFilters(state.moments);
+    if (query) {
+      const q = query.toLowerCase();
+      pool = pool.filter(m =>
+        (m.text && m.text.toLowerCase().includes(q)) ||
+        (m.tags && m.tags.some(t => t.toLowerCase().includes(q))) ||
+        (m.type && m.type.toLowerCase().includes(q))
+      );
+    }
+    pool = [...pool].sort((a, b) => b.timestamp - a.timestamp);
+    renderSearchResults(pool, query);
+  }
+
   // Render Functions
   function renderMoments() {
     const container = document.getElementById('momentsList');
-    
+    renderOnThisDay();
+
     let filteredMoments;
     if (state.selectedThread === 'unthreaded') {
       filteredMoments = state.moments.filter(m => !m.threadId);
@@ -6259,7 +6881,7 @@ window.addEventListener('beforeunload', () => {
     for (let i = 0; i < count; i++) {
       const star = document.createElement('span');
       star.className = 'graph-star';
-      const size = 0.5 + Math.random() * 1.4;
+      const size = 0.3 + Math.random() * 0.8;
       const opacity = 0.2 + Math.random() * 0.6;
       const duration = 8 + Math.random() * 20;
       const delay = -(Math.random() * duration);
@@ -7793,25 +8415,11 @@ function renderMobileCaptureButton() {
   // ── 4. Escape closes detail panel ──
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      // Close quick capture if open
-      const qc = document.getElementById('quickCaptureOverlay');
-      if (qc && qc.classList.contains('visible')) {
-        hideQuickCapture();
-        return;
-      }
       // Close detail panel
       if (state.selectedMoment) {
         state.selectedMoment = null;
         document.querySelectorAll('.moment-card.selected').forEach(c => c.classList.remove('selected'));
         renderDetail();
-      }
-    }
-    // ── 8. Ctrl/Cmd+Enter triggers quick capture ──
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      const qc = document.getElementById('quickCaptureOverlay');
-      if (qc && !qc.classList.contains('visible')) {
-        showQuickCapture();
-        e.preventDefault();
       }
     }
   });
@@ -7833,68 +8441,7 @@ function renderMobileCaptureButton() {
     renderMoments();
   };
 
-  // ── 8. Quick capture functions ──
-  window.showQuickCapture = function() {
-    const overlay = document.getElementById('quickCaptureOverlay');
-    if (overlay) {
-      overlay.classList.add('visible');
-      setTimeout(() => {
-        const ta = document.getElementById('quickCaptureText');
-        if (ta) ta.focus();
-      }, 50);
-    }
-  };
-
-  window.hideQuickCapture = function() {
-    const overlay = document.getElementById('quickCaptureOverlay');
-    if (overlay) overlay.classList.remove('visible');
-  };
-
-  window.submitQuickCapture = function() {
-    const textEl = document.getElementById('quickCaptureText');
-    const typeEl = document.getElementById('quickCaptureType');
-    const text = textEl ? textEl.value.trim() : '';
-    if (!text) {
-      if (textEl) textEl.focus();
-      return;
-    }
-    const type = typeEl ? typeEl.value : 'bug';
-    const newMoment = {
-      id: generateId(),
-      type: type,
-      text: text,
-      timestamp: Date.now(),
-      context: { service: '', environment: 'production', version: '' },
-      charts: [],
-      codeBlocks: [],
-      tables: [],
-      attachments: [],
-      templateData: {},
-      tags: [],
-      priority: null,
-      threadId: state.selectedThread && state.selectedThread !== 'unthreaded' ? state.selectedThread : null
-    };
-    state.moments.unshift(newMoment);
-    if (textEl) textEl.value = '';
-    hideQuickCapture();
-    saveData();
-    render();
-  };
-
-  // Allow Ctrl+Enter inside quick capture textarea to submit
-  // (handled globally in the keydown listener, but also directly on the textarea)
-  (function bindQCTextarea() {
-    const qcTextarea = document.getElementById('quickCaptureText');
-    if (qcTextarea) {
-      qcTextarea.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-          e.preventDefault();
-          e.stopPropagation();
-          submitQuickCapture();
-        }
-      });
-    }
-  })();
+  // (quick capture is handled by openQuickCapture / closeQuickCapture / submitQuickCapture above)
   
 document.getElementById('newThreadBtn').addEventListener('click', () => {
   const name = prompt('Thread name:');
@@ -8778,11 +9325,52 @@ document.getElementById('submitCaptureBtn').addEventListener('click', () => {
     }
   });
   
+  // Search filter pill handlers
+  document.querySelectorAll('.sf-pill[data-sf-type]').forEach(pill => {
+    pill.addEventListener('click', () => {
+      searchFilters.type = pill.dataset.sfType;
+      document.querySelectorAll('.sf-pill[data-sf-type]').forEach(p => p.classList.toggle('active', p.dataset.sfType === searchFilters.type));
+      runLocalSearch(document.getElementById('searchInput').value.trim());
+    });
+  });
+  document.querySelectorAll('.sf-pill[data-sf-date]').forEach(pill => {
+    pill.addEventListener('click', () => {
+      searchFilters.date = pill.dataset.sfDate;
+      document.querySelectorAll('.sf-pill[data-sf-date]').forEach(p => p.classList.toggle('active', p.dataset.sfDate === searchFilters.date));
+      runLocalSearch(document.getElementById('searchInput').value.trim());
+    });
+  });
+
+  // Live filter on input (no AI, just local)
+  document.getElementById('searchInput').addEventListener('input', e => {
+    const q = e.target.value.trim();
+    if (!q) { runLocalSearch(''); } else { runLocalSearch(q); }
+  });
+
   document.getElementById('searchBtn').addEventListener('click', performSearch);
-  
+
+  // Keyboard shortcut: Ctrl+K to open quick capture
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      openQuickCapture();
+    }
+    if (e.key === 'Escape') {
+      closeQuickCapture();
+    }
+  });
+
+  // Quick capture: Enter to submit, Shift+Enter for newline
+  document.getElementById('qcText')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submitQuickCapture();
+    }
+  });
+
   async function performSearch() {
     const query = document.getElementById('searchInput').value.trim();
-    if (!query) return;
+    if (!query) { runLocalSearch(''); return; }
     
     const btn = document.getElementById('searchBtn');
     btn.disabled = true;
@@ -8804,7 +9392,7 @@ document.getElementById('submitCaptureBtn').addEventListener('click', () => {
 Search query: "${query}"
 
 Moments:
-${state.moments.map(m => `ID: ${m.id}\nType: ${m.type}\nText: ${m.text}\nContext: ${JSON.stringify(m.context)}\nTags: ${m.tags ? m.tags.join(', ') : 'none'}\nPriority: ${m.priority || 'none'}\n`).join('\n---\n')}
+${applySearchFilters(state.moments).map(m => `ID: ${m.id}\nType: ${m.type}\nText: ${m.text}\nContext: ${JSON.stringify(m.context)}\nTags: ${m.tags ? m.tags.join(', ') : 'none'}\nPriority: ${m.priority || 'none'}\n`).join('\n---\n')}
 
 Return only: ["id1", "id2", ...]`
           }]
@@ -8821,124 +9409,19 @@ Return only: ["id1", "id2", ...]`
         .filter(Boolean);
       
     } catch (error) {
-      console.error('Search failed:', error);
-      const lowerQuery = query.toLowerCase();
-      
-      state.searchResults = state.moments.filter(m => {
-        // Text search
-        if (m.text.toLowerCase().includes(lowerQuery)) return true;
-        
-        // Context search
-        if (m.context.service?.toLowerCase().includes(lowerQuery)) return true;
-        if (m.context.environment?.toLowerCase().includes(lowerQuery)) return true;
-        if (m.context.version?.toLowerCase().includes(lowerQuery)) return true;
-        
-        // Tag search - support both #tag and tag format
-        if (m.tags && m.tags.length > 0) {
-          const searchTag = lowerQuery.replace(/^#/, ''); // Remove # if present
-          if (m.tags.some(tag => tag.toLowerCase().includes(searchTag))) return true;
-        }
-        
-        // Priority search
-        if (m.priority) {
-          const priorityLabels = {
-            critical: ['critical', 'urgent', 'high priority', '🔴'],
-            'follow-up': ['follow-up', 'follow up', 'followup', 'todo', '🟡'],
-            pinned: ['pinned', 'starred', 'star', 'important', '⭐']
-          };
-          
-          if (priorityLabels[m.priority].some(label => lowerQuery.includes(label))) return true;
-        }
-        
-        return false;
-      });
+      console.error('Search failed, falling back to local search:', error);
+      runLocalSearch(query);
+      btn.disabled = false;
+      btn.textContent = 'Search';
+      return;
     }
-    
+
     btn.disabled = false;
-    btn.textContent = '🔍 Search';
-    
-    if (state.searchResults.length > 0) {
-      resultsContainer.innerHTML = `<div class="results-header">Found ${state.searchResults.length} relevant moment${state.searchResults.length !== 1 ? 's' : ''}</div>`;
-      const momentsContainer = document.createElement('div');
-      
-      state.searchResults.forEach(moment => {
-        const config = MOMENT_TYPES[moment.type];
-        const card = document.createElement('div');
-        card.className = 'moment-card';
-        card.style.borderLeftColor = config.color;
-        
-        let contextHtml = '';
-        if (moment.context.service || moment.context.environment) {
-          contextHtml = '<div class="moment-context">';
-          if (moment.context.service) contextHtml += `<div class="context-tag"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> ${moment.context.service}</div>`;
-          if (moment.context.environment) contextHtml += `<div class="context-tag"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-li
-nejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> ${moment.context.environment}</div>`;
-          contextHtml += '</div>';
-        }
-        
-        let priorityHtml = '';
-        if (moment.priority) {
-          const priorityIcons = { critical: `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="#E0115F"/></svg>`, 'follow-up': `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="#ff922b"/></svg>`, pinned: `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#ffd700"/></svg>` };
-          const priorityLabels = { critical: 'Critical', 'follow-up': 'Follow-up', pinned: 'Pinned' };
-          priorityHtml = `<div class="moment-priority"><span class="priority-badge ${moment.priority}">${priorityIcons[moment.priority]} ${priorityLabels[moment.priority]}</span></div>`;
-        }
-        
-        card.innerHTML = `
-          ${priorityHtml}
-          <div class="moment-header">
-            <div class="moment-type" style="color: ${config.color}">
-              ${config.icon} ${config.label}
-            </div>
-            <div class="moment-time">${formatTime(moment.timestamp)}</div>
-          </div>
-          <div class="moment-text">${parseMarkdown(moment.text.substring(0, 200))}${moment.text.length > 200 ? '...' : ''}</div>
-          ${contextHtml}
-        `;
-        
-        if (moment.tags && moment.tags.length > 0) {
-          const tagsContainer = document.createElement('div');
-          tagsContainer.className = 'moment-tags';
-          moment.tags.forEach(tag => {
-            const tagEl = document.createElement('span');
-            tagEl.className = 'moment-tag';
-            tagEl.textContent = '#' + tag;
-            tagEl.style.cursor = 'default';
-            tagsContainer.appendChild(tagEl);
-          });
-          card.appendChild(tagsContainer);
-        }
-        
-        card.addEventListener('click', () => {
-          state.selectedMoment = moment;
-          state.view = 'timeline';
-          render();
-        });
-        
-        momentsContainer.appendChild(card);
-
-        
-      }
-    
-    
-    );
-      
-
-
-
-      
-      resultsContainer.appendChild(momentsContainer);
-    } else {
-      resultsContainer.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">🔍</div>
-          <h3>No results found</h3>
-          <p>Try different keywords or search terms</p>
-        </div>
-      `;
-    }
-    
+    btn.textContent = 'Search';
+    // Apply filters to AI results too
+    state.searchResults = applySearchFilters(state.searchResults);
+    renderSearchResults(state.searchResults, query);
     state.searchQuery = query;
-    renderMoments();
   }
   
   // Auto-save Functions
