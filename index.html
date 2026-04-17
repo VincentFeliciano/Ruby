@@ -5187,34 +5187,34 @@
   }
   
   // Markdown Parser
+  // Configure marked once at init instead of per-parse
+  marked.setOptions({ breaks: true, gfm: true, headerIds: false, mangle: false });
+
+  // Cache for parsed markdown — keyed by processed text (after wikilink substitution)
+  const _mdCache = new Map();
+  const _MD_CACHE_MAX = 400;
+
   function parseMarkdown(text, momentId = null) {
     if (!text) return '';
-    
-    // Parse wikilinks [[text]] before markdown
+
+    // Wikilink substitution (fast regex, must run fresh in case moments changed)
     let processedText = text.replace(/\[\[([^\]]+)\]\]/g, (match, linkText) => {
-      // Find moment by title (first 50 chars of text) or ID
-      const targetMoment = state.moments.find(m => 
+      const targetMoment = state.moments.find(m =>
         m.text.substring(0, 50).toLowerCase().includes(linkText.toLowerCase()) ||
         m.id === linkText
       );
-      
       if (targetMoment) {
         return `<a href="#" class="wikilink" data-moment-id="${targetMoment.id}" onclick="navigateToMoment('${targetMoment.id}'); return false;">[[${linkText}]]</a>`;
       }
-      
-      // If no moment found, just return the text
       return `<span class="wikilink-missing">[[${linkText}]]</span>`;
     });
-    
-    // Configure marked to be safe
-    marked.setOptions({
-      breaks: true,
-      gfm: true,
-      headerIds: false,
-      mangle: false
-    });
-    
-    return marked.parse(processedText);
+
+    // Cache the expensive marked.parse() call by processed text
+    if (_mdCache.has(processedText)) return _mdCache.get(processedText);
+    const result = marked.parse(processedText);
+    if (_mdCache.size >= _MD_CACHE_MAX) _mdCache.clear();
+    _mdCache.set(processedText, result);
+    return result;
   }
   
   // Extract wikilinks from text
@@ -5813,9 +5813,11 @@ function saveSelectedThread() {
   }
 }
 
-function saveData() {
+// Immediate localStorage write — called on page close or explicitly
+function _flushSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = null;
   try {
-    // Only save to localStorage as lightweight backup
     localStorage.setItem('trace-moments', JSON.stringify(state.moments));
     localStorage.setItem('trace-threads', JSON.stringify(state.threads));
     localStorage.setItem('ruby-whiteboard-tiles', JSON.stringify(state.whiteboardTiles));
@@ -5826,17 +5828,22 @@ function saveData() {
     } else {
       localStorage.removeItem('ruby-selected-moment');
     }
-    console.log('Data saved to localStorage:', { moments: state.moments.length, threads: state.threads.length });
   } catch (error) {
     console.error('Failed to save data to localStorage:', error);
-    // Don't alert - this is just a backup, file auto-save is the primary method
   }
+}
+
+// Debounced saveData — batches rapid changes (drags, keystrokes) into one write
+let _saveTimer = null;
+function saveData() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(_flushSave, 500);
 }
   
 
-// Save to localStorage on page close
+// Save to localStorage on page close — flush immediately, don't debounce
 window.addEventListener('beforeunload', () => {
-  saveData();
+  _flushSave();
 });
 
 // Save to file when tab becomes hidden (tab switch, minimize, close)
@@ -7834,25 +7841,26 @@ window.addEventListener('pagehide', async () => {
     } else {
       momentsToCount = state.moments;
     }
-    
+
+    // Single pass — count all types and unthreaded at once
+    const typeCounts = {};
+    let unthreadedCount = 0;
+    for (let i = 0; i < momentsToCount.length; i++) {
+      const m = momentsToCount[i];
+      typeCounts[m.type] = (typeCounts[m.type] || 0) + 1;
+      if (!m.threadId) unthreadedCount++;
+    }
+
     const countAllEl = document.getElementById('count-all');
-    if (countAllEl) {
-      countAllEl.textContent = momentsToCount.length;
-    }
-    
+    if (countAllEl) countAllEl.textContent = momentsToCount.length;
+
     Object.keys(MOMENT_TYPES).forEach(type => {
-      const count = momentsToCount.filter(m => m.type === type).length;
       const countEl = document.getElementById(`count-${type}`);
-      if (countEl) {
-        countEl.textContent = count;
-      }
+      if (countEl) countEl.textContent = typeCounts[type] || 0;
     });
-    
+
     const unthreadedCountEl = document.getElementById('count-unthreaded');
-    if (unthreadedCountEl) {
-      const unthreadedCount = state.moments.filter(m => !m.threadId).length;
-      unthreadedCountEl.textContent = unthreadedCount;
-    }
+    if (unthreadedCountEl) unthreadedCountEl.textContent = unthreadedCount;
   }
   
   
@@ -9428,11 +9436,13 @@ function renderMobileCaptureButton() {
   });
 
   // ── 6. Inline filter functions ──
+  let _filterTimer = null;
   window.onInlineFilterInput = function(value) {
     state.inlineFilter = value;
     const clearBtn = document.getElementById('inlineFilterClear');
     if (clearBtn) clearBtn.classList.toggle('visible', value.length > 0);
-    renderMoments();
+    clearTimeout(_filterTimer);
+    _filterTimer = setTimeout(() => renderMoments(), 150);
   };
 
   window.clearInlineFilter = function() {
