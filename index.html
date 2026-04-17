@@ -5228,8 +5228,11 @@
     return links;
   }
   
-  // Get linked moments
+  // Get linked moments — cached by momentId + moments length to avoid O(n²) on every detail render
+  const _linkedMomentsCache = new Map();
   function getLinkedMoments(momentId) {
+    const cacheKey = momentId + '_' + state.moments.length;
+    if (_linkedMomentsCache.has(cacheKey)) return _linkedMomentsCache.get(cacheKey);
     const moment = state.moments.find(m => m.id === momentId);
     if (!moment) return { outgoing: [], incoming: [] };
     
@@ -5256,9 +5259,12 @@
       );
     });
     
-    return { outgoing, incoming };
+    const result = { outgoing, incoming };
+    if (_linkedMomentsCache.size > 200) _linkedMomentsCache.clear();
+    _linkedMomentsCache.set(cacheKey, result);
+    return result;
   }
-  
+
   // Navigate to moment from wikilink
   window.navigateToMoment = function(momentId) {
     const moment = state.moments.find(m => m.id === momentId);
@@ -7882,8 +7888,16 @@ window.addEventListener('pagehide', async () => {
   // Render Graph Visualization
   // Cache the galaxy background so 120 animated stars are only created once
   let _graphGalaxy = null;
+  let _graphDataKey = '';
+  let _graphSvgCache = null;
   function renderGraph() {
     const container = document.getElementById('graphContainer');
+
+    // Build a cheap key — only rebuild D3 if moments changed
+    const dataKey = state.moments.length + '|' + state.moments.map(m => m.id).join(',');
+    const dataChanged = dataKey !== _graphDataKey;
+    _graphDataKey = dataKey;
+
     container.innerHTML = '';
 
     // Reuse cached galaxy — only build 120 star elements once
@@ -7922,9 +7936,16 @@ window.addEventListener('pagehide', async () => {
 
     if (state.moments.length === 0) {
       container.innerHTML += '<div class="empty-state" style="position:relative;z-index:3"><div class="empty-state-icon">🕸️</div><h3>No Moments Yet</h3><p>Create moments with [[wikilinks]] to build your knowledge graph</p></div>';
+      _graphSvgCache = null;
       return;
     }
-    
+
+    // If data unchanged and we have a cached SVG, just re-inject it — skip full D3 rebuild
+    if (!dataChanged && _graphSvgCache) {
+      container.appendChild(_graphSvgCache);
+      return;
+    }
+
     // Build nodes and links
     const nodes = state.moments.map(m => ({
       id: m.id,
@@ -8052,8 +8073,11 @@ window.addEventListener('pagehide', async () => {
       event.subject.fx = null;
       event.subject.fy = null;
     }
+
+    // Cache the built SVG node for reuse on next graph view
+    _graphSvgCache = container.querySelector('svg');
   }
-  
+
   // Show graph node details
   function showGraphNodeDetails(moment) {
     const panel = document.getElementById('graphDetailPanel');
@@ -9112,6 +9136,10 @@ function renderMobileCaptureButton() {
 
   // ── End Whiteboard ───────────────────────────────────────────────────────────
 
+  // Cached static DOM node lists — queried once, reused on every render()
+  const _cachedNavItems = Array.from(document.querySelectorAll('.nav-item'));
+  const _cachedFilterItems = Array.from(document.querySelectorAll('.filter-item'));
+
   function render() {
     const timelineView = document.getElementById('timelineView');
     const captureView = document.getElementById('captureView');
@@ -9180,13 +9208,8 @@ function renderMobileCaptureButton() {
       }
     }
     
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.classList.toggle('active', item.dataset.view === state.view);
-    });
-    
-    document.querySelectorAll('.filter-item').forEach(item => {
-      item.classList.toggle('active', item.dataset.filter === state.filterType);
-    });
+    _cachedNavItems.forEach(item => item.classList.toggle('active', item.dataset.view === state.view));
+    _cachedFilterItems.forEach(item => item.classList.toggle('active', item.dataset.filter === state.filterType));
     
     const titleEl = document.getElementById('timelineTitle');
     const threadBanner = document.getElementById('threadBanner');
@@ -10356,36 +10379,32 @@ document.getElementById('submitCaptureBtn').addEventListener('click', () => {
     }
   });
   
+  // Single consolidated input handler — clears results and runs local search
   document.getElementById('searchInput').addEventListener('input', (e) => {
-    const query = e.target.value.trim();
-    if (!query) {
-      // Clear search results when search box is empty
+    const q = e.target.value.trim();
+    if (!q) {
       state.searchResults = [];
-      const resultsContainer = document.getElementById('searchResults');
-      resultsContainer.innerHTML = '';
+      document.getElementById('searchResults').innerHTML = '';
     }
-  });
-  
-  // Search filter pill handlers
-  document.querySelectorAll('.sf-pill[data-sf-type]').forEach(pill => {
-    pill.addEventListener('click', () => {
-      searchFilters.type = pill.dataset.sfType;
-      document.querySelectorAll('.sf-pill[data-sf-type]').forEach(p => p.classList.toggle('active', p.dataset.sfType === searchFilters.type));
-      runLocalSearch(document.getElementById('searchInput').value.trim());
-    });
-  });
-  document.querySelectorAll('.sf-pill[data-sf-date]').forEach(pill => {
-    pill.addEventListener('click', () => {
-      searchFilters.date = pill.dataset.sfDate;
-      document.querySelectorAll('.sf-pill[data-sf-date]').forEach(p => p.classList.toggle('active', p.dataset.sfDate === searchFilters.date));
-      runLocalSearch(document.getElementById('searchInput').value.trim());
-    });
+    runLocalSearch(q);
   });
 
-  // Live filter on input (no AI, just local)
-  document.getElementById('searchInput').addEventListener('input', e => {
-    const q = e.target.value.trim();
-    if (!q) { runLocalSearch(''); } else { runLocalSearch(q); }
+  // Search filter pill handlers
+  const _sfTypePills = document.querySelectorAll('.sf-pill[data-sf-type]');
+  const _sfDatePills = document.querySelectorAll('.sf-pill[data-sf-date]');
+  _sfTypePills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      searchFilters.type = pill.dataset.sfType;
+      _sfTypePills.forEach(p => p.classList.toggle('active', p.dataset.sfType === searchFilters.type));
+      runLocalSearch(document.getElementById('searchInput').value.trim());
+    });
+  });
+  _sfDatePills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      searchFilters.date = pill.dataset.sfDate;
+      _sfDatePills.forEach(p => p.classList.toggle('active', p.dataset.sfDate === searchFilters.date));
+      runLocalSearch(document.getElementById('searchInput').value.trim());
+    });
   });
 
   document.getElementById('searchBtn').addEventListener('click', performSearch);
@@ -10844,7 +10863,6 @@ const originalRender = render;
 render = function() {
   originalRender();
   if (window.innerWidth <= 768) {
-    setupMobileNavigation();
     renderMobileCaptureButton();
   }
 };
