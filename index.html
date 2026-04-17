@@ -7806,23 +7806,29 @@ window.addEventListener('pagehide', async () => {
     panel.appendChild(footer);
   }
 
+  let _threadsRenderKey = '';
   function renderThreads() {
+    // Build a cheap cache key — skip full rebuild if threads/moments/selection unchanged
+    const key = state.threads.map(t => t.id).join(',') + '|' + state.moments.length + '|' + (state.selectedThread || '');
+    if (key === _threadsRenderKey) return;
+    _threadsRenderKey = key;
+
     const container = document.getElementById('threadList');
     container.innerHTML = '';
-    
+
+    // Count moments per thread in one pass instead of one filter per thread
+    const threadCounts = {};
+    state.moments.forEach(m => { if (m.threadId) threadCounts[m.threadId] = (threadCounts[m.threadId] || 0) + 1; });
+
     state.threads.forEach(thread => {
-      const threadMoments = state.moments.filter(m => m.threadId === thread.id);
+      const count = threadCounts[thread.id] || 0;
       const item = document.createElement('div');
       item.className = 'thread-item';
-      if (state.selectedThread === thread.id) {
-        item.classList.add('active');
-      }
-      
+      if (state.selectedThread === thread.id) item.classList.add('active');
       item.innerHTML = `
         <div class="thread-name">${thread.name}</div>
-        <div class="thread-meta">${threadMoments.length} moment${threadMoments.length !== 1 ? 's' : ''}</div>
+        <div class="thread-meta">${count} moment${count !== 1 ? 's' : ''}</div>
       `;
-      
       item.addEventListener('click', () => {
         state.selectedThread = state.selectedThread === thread.id ? null : thread.id;
         saveSelectedThread();
@@ -7832,12 +7838,16 @@ window.addEventListener('pagehide', async () => {
         render();
         if (window.innerWidth <= 768) updateMobileViews();
       });
-      
       container.appendChild(item);
     });
   }
   
+  let _countsRenderKey = '';
   function updateCounts() {
+    const key = state.moments.length + '|' + (state.selectedThread || '') + '|' + state.filterType;
+    if (key === _countsRenderKey) return;
+    _countsRenderKey = key;
+
     let momentsToCount;
     if (state.selectedThread === 'unthreaded') {
       momentsToCount = state.moments.filter(m => !m.threadId);
@@ -9243,8 +9253,17 @@ function renderMobileCaptureButton() {
       }
     }
     
-    renderMoments();
-    renderDetail();
+    // Only re-render the moment list when the timeline/search is actually visible
+    if (state.view === 'timeline' || state.view === 'search') {
+      renderMoments();
+    }
+    // Only re-render the detail panel when a moment is selected
+    if (state.selectedMoment) {
+      renderDetail();
+    } else {
+      const panel = document.getElementById('detailPanel');
+      if (panel) panel.classList.remove('visible');
+    }
     renderThreads();
     updateCounts();
     
