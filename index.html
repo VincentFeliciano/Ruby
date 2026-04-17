@@ -4146,6 +4146,10 @@
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
           Export MD
         </button>
+        <button class="sidebar-tool-btn" id="navSaveBtn" onclick="navSave()" title="Save Now">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Save
+        </button>
       </div>
 
       <div class="nav-section">
@@ -4814,7 +4818,7 @@
         <div id="autoSaveStatus" style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; padding: 12px; background: rgba(81, 207, 102, 0.1); border: 1px solid rgba(81, 207, 102, 0.3); border-radius: 8px; display: none;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
             <svg style="width: 18px; height: 18px; color: #51cf66;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <span style="color: #51cf66; font-weight: 600; font-size: 14px;">Auto-save Active</span>
+            <span style="color: #51cf66; font-weight: 600; font-size: 14px;">Save on Close Active</span>
           </div>
           <div id="lastSaveTime" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;"></div>
           <button class="btn-secondary" onclick="disableAutoSave()" style="width: 100%; padding: 6px 12px; font-size: 12px; background: rgba(224, 17, 95, 0.1); border-color: rgba(224, 17, 95, 0.3); color: #E0115F;">
@@ -4840,7 +4844,7 @@
         </button>
         
         <p style="font-size: 12px; color: var(--text-muted); font-style: italic;">
-          💡 Set up auto-save to prevent browser slowdown with large datasets. Your data will be saved to a file every 30 seconds and automatically load on app restart.
+          💡 Set up save-on-close to protect your data. Your data will be saved when you close the tab or window, and automatically load on app restart.
         </p>
         
         <div class="creator-section">
@@ -5546,22 +5550,11 @@
           state.moments = migrateMoments(data.moments);
           state.threads = data.threads || [];
           state.autoSaveEnabled = true;
-          
-          // Restart auto-save interval
-          if (state.autoSaveInterval) {
-            clearInterval(state.autoSaveInterval);
-          }
-          
-          state.autoSaveInterval = setInterval(async () => {
-            if (state.autoSaveEnabled && state.autoSaveFileHandle) {
-              await performAutoSave();
-            }
-          }, 30000);
-          
+
           updateAutoSaveUI();
           render();
-          
-          alert(`Auto-save re-authorized!\n\nLoaded ${state.moments.length} moments and ${state.threads.length} threads.`);
+
+          alert(`Save on close re-authorized!\n\nLoaded ${state.moments.length} moments and ${state.threads.length} threads.`);
         }
       } else {
         console.log('[RUBY] Permission denied by user');
@@ -5711,19 +5704,7 @@ async function loadData() {
         state.autoSaveEnabled = true;
         
         console.log(`[RUBY] Loaded ${state.moments.length} moments and ${state.threads.length} threads from auto-save file`);
-        
-        // Restart auto-save interval
-        if (state.autoSaveInterval) {
-          clearInterval(state.autoSaveInterval);
-        }
-        
-        state.autoSaveInterval = setInterval(async () => {
-          if (state.autoSaveEnabled && state.autoSaveFileHandle) {
-            await performAutoSave();
-          }
-        }, 30000); // 30 seconds
-        
-        console.log('[RUBY] Auto-save interval restarted');
+
         updateAutoSaveUI();
         render();
         
@@ -5853,13 +5834,24 @@ function saveData() {
 }
   
 
-// Save to localStorage on page unload as backup
+// Save to localStorage on page close
 window.addEventListener('beforeunload', () => {
   saveData();
 });
 
-// Note: File auto-save is now the primary save mechanism
-// It's set up via setupAutoSave() and runs every 30 seconds
+// Save to file when tab becomes hidden (tab switch, minimize, close)
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'hidden' && state.autoSaveEnabled && state.autoSaveFileHandle) {
+    await performAutoSave();
+  }
+});
+
+// Save to file on page hide (navigation away, close)
+window.addEventListener('pagehide', async () => {
+  if (state.autoSaveEnabled && state.autoSaveFileHandle) {
+    await performAutoSave();
+  }
+});
 
 
   // Chart Generation
@@ -10443,20 +10435,9 @@ Return only: ["id1", "id2", ...]`
       
       // Do an immediate save
       await performAutoSave();
-      
-      // Start auto-save interval (every 30 seconds)
-      if (state.autoSaveInterval) {
-        clearInterval(state.autoSaveInterval);
-      }
-      
-      state.autoSaveInterval = setInterval(async () => {
-        if (state.autoSaveEnabled && state.autoSaveFileHandle) {
-          await performAutoSave();
-        }
-      }, 30000); // 30 seconds
-      
+
       updateAutoSaveUI();
-      alert('Auto-save is now active!\n\n✓ Data saves every 30 seconds\n✓ Automatically reconnects when you reopen the app\n✓ No need to re-select the file\n\nYour work is protected!');
+      alert('Save on close is now active!\n\n✓ Data saves when you close or switch tabs\n✓ Automatically reconnects when you reopen the app\n✓ No need to re-select the file\n\nYour work is protected!');
       
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -10479,12 +10460,7 @@ Return only: ["id1", "id2", ...]`
     state.autoSaveEnabled = false;
     state.autoSaveFileHandle = null;
     state.lastAutoSave = null;
-    
-    if (state.autoSaveInterval) {
-      clearInterval(state.autoSaveInterval);
-      state.autoSaveInterval = null;
-    }
-    
+
     await removeFileHandleFromDB();
     updateAutoSaveUI();
   };
@@ -10522,14 +10498,9 @@ Return only: ["id1", "id2", ...]`
         state.autoSaveEnabled = false;
         state.autoSaveFileHandle = null;
         await removeFileHandleFromDB();
-        
-        if (state.autoSaveInterval) {
-          clearInterval(state.autoSaveInterval);
-          state.autoSaveInterval = null;
-        }
-        
+
         updateAutoSaveUI();
-        alert('Auto-save permission was revoked or file was deleted.\n\nPlease set up auto-save again by clicking "Set Auto-save" in the RUBY modal.');
+        alert('Save-on-close permission was revoked or file was deleted.\n\nPlease set up save-on-close again by clicking "Set Auto-save" in the RUBY modal.');
       }
     }
   }
@@ -10553,7 +10524,7 @@ Return only: ["id1", "id2", ...]`
       if (saveIcon) {
         saveIcon.classList.remove('disabled');
         saveIcon.classList.add('enabled');
-        saveIcon.setAttribute('title', 'Auto-save enabled');
+        saveIcon.setAttribute('title', 'Save on close enabled');
       }
       
       if (state.lastAutoSave) {
@@ -10573,11 +10544,27 @@ Return only: ["id1", "id2", ...]`
       if (saveIcon) {
         saveIcon.classList.remove('enabled');
         saveIcon.classList.add('disabled');
-        saveIcon.setAttribute('title', 'Auto-save disabled');
+        saveIcon.setAttribute('title', 'Save on close disabled');
       }
     }
   }
   
+  // Nav Save button handler
+  window.navSave = async function() {
+    const btn = document.getElementById('navSaveBtn');
+    if (state.autoSaveEnabled && state.autoSaveFileHandle) {
+      await performAutoSave();
+      if (btn) {
+        const origHTML = btn.innerHTML;
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Saved!';
+        btn.style.color = '#51cf66';
+        setTimeout(() => { btn.innerHTML = origHTML; btn.style.color = ''; }, 1500);
+      }
+    } else {
+      await saveToFile();
+    }
+  };
+
   // Manual save (creates a copy)
   window.saveToFile = async function() {
     const exportData = {
@@ -10870,7 +10857,7 @@ window.addEventListener('resize', () => {
           <span style="font-size: 14px; font-weight: 600;">Set Up Auto-save?</span>
         </div>
         <p style="margin: 0 0 12px 0; font-size: 12px; line-height: 1.4; opacity: 0.95;">
-          You have data but auto-save is not configured. Auto-save will save your data to a file every 30 seconds and automatically load it when you restart.
+          You have data but save-on-close is not configured. It will save your data when you close or switch tabs and automatically load it when you restart.
         </p>
         <button id="setupAutoSaveBtn" style="width: 100%; padding: 8px 12px; background: white; color: #00d4ff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; margin-bottom: 8px;">
           Set Up Auto-save Now
