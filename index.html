@@ -173,7 +173,6 @@
     .sidebar {
       width: 350px;
       background: var(--bg-tertiary);
-      backdrop-filter: blur(20px);
       border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
@@ -523,16 +522,14 @@
     }
     
     .moment-card {
-      background: rgba(30, 41, 59, 0.4);
-      backdrop-filter: blur(10px);
+      background: rgba(30, 41, 59, 0.7);
       border: 1px solid var(--border-color);
       border-left: 3px solid;
       border-radius: 8px;
       padding: 12px;
       margin-bottom: 10px;
       cursor: pointer;
-      transition: all 0.3s;
-      animation: slideIn 0.3s ease-out;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
     }
     
     @keyframes slideIn {
@@ -6286,9 +6283,13 @@ window.addEventListener('pagehide', async () => {
   }
 
   // ── On This Day ─────────────────────────────────────────────────────────
+  let _onThisDayState = { count: -1, date: '' };
   function renderOnThisDay() {
     const el = document.getElementById('onThisDayBanner');
     if (!el) return;
+    const today = new Date().toDateString();
+    if (_onThisDayState.count === state.moments.length && _onThisDayState.date === today) return;
+    _onThisDayState = { count: state.moments.length, date: today };
     const now = Date.now();
     const DAY = 86400000;
     const lookbacks = [
@@ -6335,7 +6336,7 @@ window.addEventListener('pagehide', async () => {
           <div class="on-this-day-card-text">${(m.text||'').slice(0, 120)}${m.text && m.text.length > 120 ? '…' : ''}</div>
         `;
         card.addEventListener('click', () => {
-          state.selectedMoment = m.id;
+          state.selectedMoment = m;
           render();
         });
         group.appendChild(card);
@@ -7236,6 +7237,9 @@ window.addEventListener('pagehide', async () => {
   }
 
   // Render Functions
+  // Track the currently selected card element to avoid querySelectorAll on every click
+  let _selectedCardEl = null;
+
   // Virtual list state
   let _vlObserver = null;
   let _vlOrdered = [];
@@ -7363,8 +7367,9 @@ window.addEventListener('pagehide', async () => {
 
     card.addEventListener('click', () => {
       state.selectedMoment = moment;
-      document.querySelectorAll('.moment-card').forEach(c => c.classList.remove('selected'));
+      if (_selectedCardEl) _selectedCardEl.classList.remove('selected');
       card.classList.add('selected');
+      _selectedCardEl = card;
       if (state.view === 'timeline') renderDetail();
     });
 
@@ -7865,41 +7870,45 @@ window.addEventListener('pagehide', async () => {
   
   
   // Render Graph Visualization
+  // Cache the galaxy background so 120 animated stars are only created once
+  let _graphGalaxy = null;
   function renderGraph() {
     const container = document.getElementById('graphContainer');
     container.innerHTML = '';
 
-    // Galaxy background
-    const galaxy = document.createElement('div');
-    galaxy.className = 'graph-galaxy';
-    const starChars = ['✦', '✧', '⋆', '·'];
-    const count = 120;
-    for (let i = 0; i < count; i++) {
-      const star = document.createElement('span');
-      star.className = 'graph-star';
-      const size = 0.3 + Math.random() * 0.8;
-      const opacity = 0.2 + Math.random() * 0.6;
-      const duration = 8 + Math.random() * 20;
-      const delay = -(Math.random() * duration);
-      const dx = (Math.random() - 0.5) * 6;
-      const dy = (Math.random() - 0.5) * 6;
-      star.textContent = starChars[Math.floor(Math.random() * starChars.length)];
-      star.style.cssText = `
-        left: ${Math.random() * 100}%;
-        top: ${Math.random() * 100}%;
-        font-size: ${size}em;
-        --star-opacity: ${opacity};
-        --dx1: ${dx * 0.3}px; --dy1: ${dy * 0.5}px;
-        --dx2: ${dx * 0.7}px; --dy2: ${dy * 0.2}px;
-        --dx3: ${dx}px;       --dy3: ${dy * 0.8}px;
-        animation-duration: ${duration}s;
-        animation-delay: ${delay}s;
-        text-shadow: 0 0 ${4 + Math.random() * 6}px rgba(180,210,255,${0.4 + Math.random() * 0.5}),
-                     0 0 ${8 + Math.random() * 10}px rgba(120,160,255,${0.2 + Math.random() * 0.3});
-      `;
-      galaxy.appendChild(star);
+    // Reuse cached galaxy — only build 120 star elements once
+    if (!_graphGalaxy) {
+      const galaxy = document.createElement('div');
+      galaxy.className = 'graph-galaxy';
+      const starChars = ['✦', '✧', '⋆', '·'];
+      for (let i = 0; i < 120; i++) {
+        const star = document.createElement('span');
+        star.className = 'graph-star';
+        const size = 0.3 + Math.random() * 0.8;
+        const opacity = 0.2 + Math.random() * 0.6;
+        const duration = 8 + Math.random() * 20;
+        const delay = -(Math.random() * duration);
+        const dx = (Math.random() - 0.5) * 6;
+        const dy = (Math.random() - 0.5) * 6;
+        star.textContent = starChars[Math.floor(Math.random() * starChars.length)];
+        star.style.cssText = `
+          left: ${Math.random() * 100}%;
+          top: ${Math.random() * 100}%;
+          font-size: ${size}em;
+          --star-opacity: ${opacity};
+          --dx1: ${dx * 0.3}px; --dy1: ${dy * 0.5}px;
+          --dx2: ${dx * 0.7}px; --dy2: ${dy * 0.2}px;
+          --dx3: ${dx}px;       --dy3: ${dy * 0.8}px;
+          animation-duration: ${duration}s;
+          animation-delay: ${delay}s;
+          text-shadow: 0 0 ${4 + Math.random() * 6}px rgba(180,210,255,${0.4 + Math.random() * 0.5}),
+                       0 0 ${8 + Math.random() * 10}px rgba(120,160,255,${0.2 + Math.random() * 0.3});
+        `;
+        galaxy.appendChild(star);
+      }
+      _graphGalaxy = galaxy;
     }
-    container.appendChild(galaxy);
+    container.appendChild(_graphGalaxy);
 
     if (state.moments.length === 0) {
       container.innerHTML += '<div class="empty-state" style="position:relative;z-index:3"><div class="empty-state-icon">🕸️</div><h3>No Moments Yet</h3><p>Create moments with [[wikilinks]] to build your knowledge graph</p></div>';
@@ -9429,7 +9438,7 @@ function renderMobileCaptureButton() {
       // Close detail panel
       if (state.selectedMoment) {
         state.selectedMoment = null;
-        document.querySelectorAll('.moment-card.selected').forEach(c => c.classList.remove('selected'));
+        if (_selectedCardEl) { _selectedCardEl.classList.remove('selected'); _selectedCardEl = null; }
         renderDetail();
       }
     }
