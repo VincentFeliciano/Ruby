@@ -7229,6 +7229,193 @@ window.addEventListener('pagehide', async () => {
   }
 
   // Render Functions
+  // Virtual list state
+  let _vlObserver = null;
+  let _vlOrdered = [];
+  let _vlRendered = 0;
+  let _vlPinnedCount = 0;
+  let _vlHasPinnedHeader = false;
+  let _vlHasUnpinnedHeader = false;
+
+  function _buildMomentCard(moment) {
+    const config = MOMENT_TYPES[moment.type];
+    const card = document.createElement('div');
+    card.className = 'moment-card';
+    if (state.selectedMoment?.id === moment.id) card.classList.add('selected');
+    card.style.borderLeftColor = config.color;
+    if (moment.pinnedToTop) card.classList.add('pinned-to-top');
+
+    let contextHtml = '';
+    if (moment.context.service || moment.context.environment || moment.context.version) {
+      contextHtml = '<div class="moment-context">';
+      if (moment.context.service) contextHtml += `<div class="context-tag"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> ${moment.context.service}</div>`;
+      if (moment.context.environment) contextHtml += `<div class="context-tag"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> ${moment.context.environment}</div>`;
+      if (moment.context.version) contextHtml += `<div class="context-tag"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" x2="7.01" y1="7" y2="7"/></svg> ${moment.context.version}</div>`;
+      contextHtml += '</div>';
+    }
+
+    let threadBadge = '';
+    if (moment.threadId && !state.selectedThread) {
+      const thread = state.threads.find(t => t.id === moment.threadId);
+      if (thread) {
+        threadBadge = `<div class="moment-thread-badge"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17h.01"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg> ${thread.name}</div>`;
+      }
+    } else if (!moment.threadId && state.threads.length > 0 && !state.selectedThread) {
+      threadBadge = `<div class="moment-unthreaded-badge"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg> Unthreaded</div>`;
+    }
+
+    let priorityHtml = '';
+    if (moment.priority) {
+      const priorityIcons = { critical: `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="#E0115F"/></svg>`, 'follow-up': `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="#ff922b"/></svg>`, pinned: `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#ffd700"/></svg>` };
+      const priorityLabels = { critical: 'Critical', 'follow-up': 'Follow-up', pinned: 'Pinned' };
+      priorityHtml = `<div class="moment-priority"><span class="priority-badge ${moment.priority}">${priorityIcons[moment.priority]} ${priorityLabels[moment.priority]}</span></div>`;
+    }
+
+    card.innerHTML = `
+      ${threadBadge}
+      ${priorityHtml}
+      <div class="moment-header">
+        <div class="moment-type" style="color: ${config.color}">
+          ${config.icon} ${config.label}
+        </div>
+      </div>
+      <div class="moment-time"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${formatTime(moment.timestamp)}</div>
+      <div class="moment-text">${parseMarkdown(moment.text)}</div>
+      ${contextHtml}
+    `;
+
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'pin-top-btn' + (moment.pinnedToTop ? ' active' : '');
+    pinBtn.title = moment.pinnedToTop ? 'Unpin from top' : 'Pin to top';
+    pinBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="${moment.pinnedToTop ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>`;
+    pinBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePinToTop(moment.id); });
+    card.appendChild(pinBtn);
+
+    if (moment.tags && moment.tags.length > 0) {
+      const tagsContainer = document.createElement('div');
+      tagsContainer.className = 'moment-tags';
+      moment.tags.forEach(tag => {
+        const tagEl = document.createElement('span');
+        tagEl.className = 'moment-tag';
+        tagEl.textContent = '#' + tag;
+        tagEl.style.cursor = 'default';
+        tagsContainer.appendChild(tagEl);
+      });
+      card.appendChild(tagsContainer);
+    }
+
+    if (moment.templateData && config.template) {
+      const templateDisplay = createTemplateDisplay(moment.templateData, config.template, true);
+      if (templateDisplay) card.appendChild(templateDisplay);
+    }
+
+    if (moment.charts && moment.charts.length > 0) {
+      const chartsContainer = document.createElement('div');
+      chartsContainer.className = 'moment-charts';
+      moment.charts.forEach(chart => {
+        chartsContainer.appendChild(createChart(chart.title || chart.type, chart.data, config.color, chart.labels || null, chart.id || null, chart.chartType || 'line'));
+      });
+      card.appendChild(chartsContainer);
+    }
+
+    if (moment.codeBlocks && moment.codeBlocks.length > 0) {
+      const codeContainer = document.createElement('div');
+      codeContainer.className = 'moment-code-blocks';
+      moment.codeBlocks.forEach(codeBlock => {
+        codeContainer.appendChild(createCodeBlock(codeBlock.language, codeBlock.code, codeBlock.title || '', null));
+      });
+      card.appendChild(codeContainer);
+    }
+
+    if (moment.tables && moment.tables.length > 0) {
+      const tableContainer = document.createElement('div');
+      tableContainer.className = 'moment-tables';
+      moment.tables.forEach(table => {
+        tableContainer.appendChild(createTable(table.title || '', table.data, null));
+      });
+      card.appendChild(tableContainer);
+    }
+
+    if (moment.attachments && moment.attachments.length > 0) {
+      const attachmentsContainer = document.createElement('div');
+      attachmentsContainer.className = 'moment-attachments';
+      moment.attachments.forEach(attachment => {
+        const preview = document.createElement('div');
+        preview.className = 'attachment-preview';
+        if (attachment.isImage) {
+          preview.innerHTML = `<img src="${attachment.data}" alt="${attachment.name}">`;
+          preview.addEventListener('click', (e) => { e.stopPropagation(); showImageModal(attachment.data); });
+        } else {
+          preview.innerHTML = `<div class="attachment-file"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div>`;
+          preview.addEventListener('click', (e) => { e.stopPropagation(); downloadAttachment(attachment); });
+        }
+        attachmentsContainer.appendChild(preview);
+      });
+      card.appendChild(attachmentsContainer);
+    }
+
+    card.addEventListener('click', () => {
+      state.selectedMoment = moment;
+      document.querySelectorAll('.moment-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      if (state.view === 'timeline') renderDetail();
+    });
+
+    return card;
+  }
+
+  function _vlRenderBatch() {
+    const container = document.getElementById('momentsList');
+    if (!container) return;
+
+    // Remove existing sentinel
+    const oldSentinel = document.getElementById('_vlSentinel');
+    if (oldSentinel) oldSentinel.remove();
+
+    const end = Math.min(_vlRendered + 25, _vlOrdered.length);
+
+    for (let i = _vlRendered; i < end; i++) {
+      const moment = _vlOrdered[i];
+
+      if (moment.pinnedToTop && !_vlHasPinnedHeader) {
+        const header = document.createElement('div');
+        header.className = 'pinned-section-header';
+        header.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg> Pinned`;
+        container.appendChild(header);
+        _vlHasPinnedHeader = true;
+      }
+      if (!moment.pinnedToTop && !_vlHasUnpinnedHeader && _vlPinnedCount > 0) {
+        const divider = document.createElement('div');
+        divider.className = 'timeline-section-divider';
+        divider.textContent = 'Timeline';
+        container.appendChild(divider);
+        _vlHasUnpinnedHeader = true;
+      }
+
+      container.appendChild(_buildMomentCard(moment));
+    }
+
+    _vlRendered = end;
+
+    if (_vlRendered < _vlOrdered.length) {
+      // Add sentinel for next batch
+      const sentinel = document.createElement('div');
+      sentinel.id = '_vlSentinel';
+      sentinel.style.cssText = 'height:1px;width:100%;';
+      container.appendChild(sentinel);
+
+      if (_vlObserver) _vlObserver.disconnect();
+      const scrollRoot = container.closest('.timeline-list');
+      _vlObserver = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting) _vlRenderBatch();
+      }, { root: scrollRoot, rootMargin: '400px' });
+      _vlObserver.observe(sentinel);
+    } else {
+      if (_vlObserver) { _vlObserver.disconnect(); _vlObserver = null; }
+      if (window.innerWidth <= 768) setTimeout(() => renderMobileCaptureButton(), 10);
+    }
+  }
+
   function renderMoments() {
     const container = document.getElementById('momentsList');
     renderOnThisDay();
@@ -7241,11 +7428,11 @@ window.addEventListener('pagehide', async () => {
     } else {
       filteredMoments = state.moments;
     }
-    
+
     if (state.filterType !== 'all') {
       filteredMoments = filteredMoments.filter(m => m.type === state.filterType);
     }
-    
+
     let displayMoments = state.view === 'search' && state.searchResults.length > 0
       ? state.searchResults
       : filteredMoments;
@@ -7262,6 +7449,7 @@ window.addEventListener('pagehide', async () => {
     }
 
     if (displayMoments.length === 0) {
+      if (_vlObserver) { _vlObserver.disconnect(); _vlObserver = null; }
       if (state.selectedThread === 'unthreaded') {
         container.innerHTML = `
           <div class="empty-state">
@@ -7270,27 +7458,24 @@ window.addEventListener('pagehide', async () => {
             <p>All moments are assigned to threads</p>
           </div>
         `;
-} else if (state.selectedThread) {
-  const thread = state.threads.find(t => t.id === state.selectedThread);
-  
-  // Check if mobile
-  const isMobile = window.innerWidth <= 768;
-  const captureButton = isMobile ? `
-    <button class="btn-primary mobile-empty-capture-btn" onclick="state.view = 'capture'; render();">
-      <svg class="icon-action" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      Capture Moment
-    </button>
-  ` : '';
-  
-  container.innerHTML = `
-    <div class="empty-state">
-      <div class="empty-state-icon"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17h.01"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></div>
-      <h3>No moments in this thread</h3>
-      <p>Capture a moment to add it to "${thread ? thread.name : 'this thread'}"</p>
-      ${captureButton}
-    </div>
-  `;
-} else {
+      } else if (state.selectedThread) {
+        const thread = state.threads.find(t => t.id === state.selectedThread);
+        const isMobile = window.innerWidth <= 768;
+        const captureButton = isMobile ? `
+          <button class="btn-primary mobile-empty-capture-btn" onclick="state.view = 'capture'; render();">
+            <svg class="icon-action" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Capture Moment
+          </button>
+        ` : '';
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17h.01"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg></div>
+            <h3>No moments in this thread</h3>
+            <p>Capture a moment to add it to "${thread ? thread.name : 'this thread'}"</p>
+            ${captureButton}
+          </div>
+        `;
+      } else {
         container.innerHTML = `
           <div class="empty-state">
             <div class="empty-state-icon">🕐</div>
@@ -7301,189 +7486,21 @@ window.addEventListener('pagehide', async () => {
       }
       return;
     }
-    
+
     container.innerHTML = '';
+
+    // Disconnect any previous observer
+    if (_vlObserver) { _vlObserver.disconnect(); _vlObserver = null; }
 
     const pinnedMoments = displayMoments.filter(m => m.pinnedToTop);
     const unpinnedMoments = displayMoments.filter(m => !m.pinnedToTop);
-    const orderedMoments = [...pinnedMoments, ...unpinnedMoments];
+    _vlOrdered = [...pinnedMoments, ...unpinnedMoments];
+    _vlPinnedCount = pinnedMoments.length;
+    _vlRendered = 0;
+    _vlHasPinnedHeader = false;
+    _vlHasUnpinnedHeader = false;
 
-    let pinnedHeaderAdded = false;
-    let unpinnedHeaderAdded = false;
-
-    orderedMoments.forEach(moment => {
-      if (moment.pinnedToTop && !pinnedHeaderAdded) {
-        const header = document.createElement('div');
-        header.className = 'pinned-section-header';
-        header.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg> Pinned`;
-        container.appendChild(header);
-        pinnedHeaderAdded = true;
-      }
-      if (!moment.pinnedToTop && !unpinnedHeaderAdded && pinnedMoments.length > 0) {
-        const divider = document.createElement('div');
-        divider.className = 'timeline-section-divider';
-        divider.textContent = 'Timeline';
-        container.appendChild(divider);
-        unpinnedHeaderAdded = true;
-      }
-
-      const config = MOMENT_TYPES[moment.type];
-      const card = document.createElement('div');
-      card.className = 'moment-card';
-      if (state.selectedMoment?.id === moment.id) {
-        card.classList.add('selected');
-      }
-      card.style.borderLeftColor = config.color;
-      if (moment.pinnedToTop) {
-        card.classList.add('pinned-to-top');
-      }
-
-      let contextHtml = '';
-      if (moment.context.service || moment.context.environment || moment.context.version) {
-        contextHtml = '<div class="moment-context">';
-        if (moment.context.service) contextHtml += `<div class="context-tag"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> ${moment.context.service}</div>`;
-        if (moment.context.environment) contextHtml += `<div class="context-tag"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> ${moment.context.environment}</div>`;
-        if (moment.context.version) contextHtml += `<div class="context-tag"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" x2="7.01" y1="7" y2="7"/></svg> ${moment.context.version}</div>`;
-        contextHtml += '</div>';
-      }
-      
-      let threadBadge = '';
-      if (moment.threadId && !state.selectedThread) {
-        const thread = state.threads.find(t => t.id === moment.threadId);
-        if (thread) {
-          threadBadge = `<div class="moment-thread-badge"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17h.01"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg> ${thread.name}</div>`;
-        }
-      } else if (!moment.threadId && state.threads.length > 0 && !state.selectedThread) {
-        threadBadge = `<div class="moment-unthreaded-badge"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg> Unthreaded</div>`;
-      }
-      
-      let priorityHtml = '';
-      if (moment.priority) {
-        const priorityIcons = { critical: `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="#E0115F"/></svg>`, 'follow-up': `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="#ff922b"/></svg>`, pinned: `<svg class="icon-priority" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="#ffd700"/></svg>` };
-        const priorityLabels = { critical: 'Critical', 'follow-up': 'Follow-up', pinned: 'Pinned' };
-        priorityHtml = `<div class="moment-priority"><span class="priority-badge ${moment.priority}">${priorityIcons[moment.priority]} ${priorityLabels[moment.priority]}</span></div>`;
-      }
-      
-      card.innerHTML = `
-        ${threadBadge}
-        ${priorityHtml}
-        <div class="moment-header">
-          <div class="moment-type" style="color: ${config.color}">
-            ${config.icon} ${config.label}
-          </div>
-        </div>
-        <div class="moment-time"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${formatTime(moment.timestamp)}</div>
-        <div class="moment-text">${parseMarkdown(moment.text)}</div>
-        ${contextHtml}
-      `;
-
-      const pinBtn = document.createElement('button');
-      pinBtn.className = 'pin-top-btn' + (moment.pinnedToTop ? ' active' : '');
-      pinBtn.title = moment.pinnedToTop ? 'Unpin from top' : 'Pin to top';
-      pinBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="${moment.pinnedToTop ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>`;
-      pinBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        togglePinToTop(moment.id);
-      });
-      card.appendChild(pinBtn);
-
-      if (moment.tags && moment.tags.length > 0) {
-        const tagsContainer = document.createElement('div');
-        tagsContainer.className = 'moment-tags';
-        moment.tags.forEach(tag => {
-          const tagEl = document.createElement('span');
-          tagEl.className = 'moment-tag';
-          tagEl.textContent = '#' + tag;
-          tagEl.style.cursor = 'default';
-          tagsContainer.appendChild(tagEl);
-        });
-        card.appendChild(tagsContainer);
-      }
-      
-      if (moment.templateData && config.template) {
-        const templateDisplay = createTemplateDisplay(moment.templateData, config.template, true);
-        if (templateDisplay) {
-          card.appendChild(templateDisplay);
-        }
-      }
-      
-      if (moment.charts && moment.charts.length > 0) {
-        const chartsContainer = document.createElement('div');
-        chartsContainer.className = 'moment-charts';
-        moment.charts.forEach(chart => {
-          chartsContainer.appendChild(createChart(
-            chart.title || chart.type, 
-            chart.data, 
-            config.color, 
-            chart.labels || null, 
-            chart.id || null, 
-            chart.chartType || 'line'
-          ));
-        });
-        card.appendChild(chartsContainer);
-      }
-      
-      if (moment.codeBlocks && moment.codeBlocks.length > 0) {
-        const codeContainer = document.createElement('div');
-        codeContainer.className = 'moment-code-blocks';
-        moment.codeBlocks.forEach(codeBlock => {
-          codeContainer.appendChild(createCodeBlock(codeBlock.language, codeBlock.code, codeBlock.title || '', null));
-        });
-        card.appendChild(codeContainer);
-      }
-      
-      if (moment.tables && moment.tables.length > 0) {
-        const tableContainer = document.createElement('div');
-        tableContainer.className = 'moment-tables';
-        moment.tables.forEach(table => {
-          tableContainer.appendChild(createTable(table.title || '', table.data, null));
-        });
-        card.appendChild(tableContainer);
-      }
-      
-      if (moment.attachments && moment.attachments.length > 0) {
-        const attachmentsContainer = document.createElement('div');
-        attachmentsContainer.className = 'moment-attachments';
-        moment.attachments.forEach(attachment => {
-          const preview = document.createElement('div');
-          preview.className = 'attachment-preview';
-          
-          if (attachment.isImage) {
-            preview.innerHTML = `<img src="${attachment.data}" alt="${attachment.name}">`;
-            preview.addEventListener('click', (e) => {
-              e.stopPropagation();
-              showImageModal(attachment.data);
-            });
-          } else {
-            preview.innerHTML = `<div class="attachment-file"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div>`;
-            preview.addEventListener('click', (e) => {
-              e.stopPropagation();
-              downloadAttachment(attachment);
-            });
-          }
-          
-          attachmentsContainer.appendChild(preview);
-        });
-        card.appendChild(attachmentsContainer);
-      }
-      
-        card.addEventListener('click', () => {
-          state.selectedMoment = moment;
-          document.querySelectorAll('.moment-card').forEach(c => c.classList.remove('selected'));
-          card.classList.add('selected');
-          
-          // Only open detail panel if we're in timeline view (not search or graph)
-          if (state.view === 'timeline') {
-            renderDetail();
-          }
-        });
-      
-      container.appendChild(card);
-    });
-    // Re-add mobile capture button after rendering moments
-    if (window.innerWidth <= 768) {
-      setTimeout(() => renderMobileCaptureButton(), 10);
-    }
+    _vlRenderBatch();
   }
   
   function renderDetail() {
