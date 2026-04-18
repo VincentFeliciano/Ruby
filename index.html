@@ -5227,10 +5227,10 @@
   function parseMarkdown(text, momentId = null) {
     if (!text) return '';
 
-    // Wikilink substitution — uses precomputed prefix cache for O(n) total, not O(n) per link
+    // Wikilink substitution — fetch prefix cache once, reuse for every [[link]] in this text
+    const prefixes = _getWikiPrefixes();
     let processedText = text.replace(/\[\[([^\]]+)\]\]/g, (match, linkText) => {
       const lc = linkText.toLowerCase();
-      const prefixes = _getWikiPrefixes();
       const entry = prefixes.find(p => p.id === linkText || p.lc.includes(lc));
       const targetMoment = entry?.moment;
       if (targetMoment) {
@@ -5322,6 +5322,7 @@
       let re = _stCache.get(key);
       if (!re) {
         re = new RegExp('(<[^>]*>)|(?:' + pattern.source + ')', (pattern.flags || '').replace('g', '') + 'g');
+        if (_stCache.size >= 100) _stCache.clear();
         _stCache.set(key, re);
       }
       re.lastIndex = 0;
@@ -6328,7 +6329,7 @@ window.addEventListener('pagehide', async () => {
   // ── On This Day ─────────────────────────────────────────────────────────
   let _onThisDayState = { count: -1, date: '' };
   function renderOnThisDay() {
-    const el = document.getElementById('onThisDayBanner');
+    const el = _els.onThisDayBanner;
     if (!el) return;
     const today = new Date().toDateString();
     if (_onThisDayState.count === state.moments.length && _onThisDayState.date === today) return;
@@ -7938,6 +7939,7 @@ window.addEventListener('pagehide', async () => {
   let _graphGalaxy = null;
   let _graphDataKey = '';
   let _graphSvgCache = null;
+  let _graphSimulation = null; // track active D3 simulation so it can be stopped on rebuild
   function renderGraph() {
     const container = document.getElementById('graphContainer');
 
@@ -8047,6 +8049,9 @@ window.addEventListener('pagehide', async () => {
         g.attr('transform', event.transform);
       }));
     
+    // Stop any previous simulation before rebuilding
+    if (_graphSimulation) { _graphSimulation.stop(); _graphSimulation = null; }
+
     // Create force simulation
     const simulation = d3.forceSimulation(nodes)
       .force('link', d3.forceLink(links).id(d => d.id).distance(100))
@@ -8130,7 +8135,8 @@ window.addEventListener('pagehide', async () => {
       event.subject.fy = null;
     }
 
-    // Cache the built SVG node for reuse on next graph view
+    // Store simulation reference and cache the built SVG node for reuse on next graph view
+    _graphSimulation = simulation;
     _graphSvgCache = container.querySelector('svg');
   }
 
@@ -8467,7 +8473,7 @@ function renderMobileCaptureButton() {
   }
 
   function wbVisibleCenter() {
-    const outer = document.getElementById('wbCanvasOuter');
+    const outer = _els.wbCanvasOuter;
     const r = outer ? outer.getBoundingClientRect() : { width: 800, height: 600 };
     return {
       x: Math.max(20, (r.width  / 2 - wb.panX) / wb.scale - 110),
@@ -8489,8 +8495,8 @@ function renderMobileCaptureButton() {
 
   function renderWhiteboard() {
     setupWhiteboardEvents();
-    const canvas = document.getElementById('wbCanvas');
-    const svg = document.getElementById('wbLinksSvg');
+    const canvas = _els.wbCanvas;
+    const svg = _els.wbLinksSvg;
     if (!canvas || !svg) return;
 
     // Sync topZ so new bring-to-fronts are always above existing tiles
@@ -8549,12 +8555,11 @@ function renderMobileCaptureButton() {
     // Render tiles
     state.whiteboardTiles.forEach(tile => canvas.appendChild(createWbTile(tile)));
 
-    const lbl = document.getElementById('wbZoomLabel');
-    if (lbl) lbl.textContent = Math.round(wb.scale * 100) + '%';
+    if (_els.wbZoomLabel) _els.wbZoomLabel.textContent = Math.round(wb.scale * 100) + '%';
   }
 
   function wbRedrawLinks() {
-    const svg = document.getElementById('wbLinksSvg');
+    const svg = _els.wbLinksSvg;
     if (!svg) return;
     svg.querySelectorAll('line, text').forEach(el => el.remove());
     const tileMap = new Map(state.whiteboardTiles.map(t => [t.id, t]));
@@ -8981,8 +8986,8 @@ function renderMobileCaptureButton() {
     if (wb.eventsSetup) return;
     wb.eventsSetup = true;
 
-    const outer = document.getElementById('wbCanvasOuter');
-    const canvas = document.getElementById('wbCanvas');
+    const outer = _els.wbCanvasOuter;
+    const canvas = _els.wbCanvas;
     if (!outer || !canvas) return;
 
     // Pan: middle-mouse or space+drag
@@ -9057,8 +9062,7 @@ function renderMobileCaptureButton() {
         wbTouchState.lastY = cy;
         wbTouchState.lastDist = dist;
         canvas.style.transform = `translate(${wb.panX}px,${wb.panY}px) scale(${wb.scale})`;
-        const lbl = document.getElementById('wbZoomLabel');
-        if (lbl) lbl.textContent = Math.round(wb.scale * 100) + '%';
+        if (_els.wbZoomLabel) _els.wbZoomLabel.textContent = Math.round(wb.scale * 100) + '%';
       }
     }, { passive: false });
 
@@ -9230,6 +9234,11 @@ function renderMobileCaptureButton() {
     captureSubtitle:       document.getElementById('captureSubtitle'),
     captureThreadSelect:   document.getElementById('captureThreadSelect'),
     threadList:            document.getElementById('threadList'),
+    wbCanvasOuter:         document.getElementById('wbCanvasOuter'),
+    wbCanvas:              document.getElementById('wbCanvas'),
+    wbLinksSvg:            document.getElementById('wbLinksSvg'),
+    wbZoomLabel:           document.getElementById('wbZoomLabel'),
+    onThisDayBanner:       document.getElementById('onThisDayBanner'),
   };
 
   // Pre-cache count badge elements — queried once, reused in updateCounts()
@@ -9529,11 +9538,16 @@ function renderMobileCaptureButton() {
       e.preventDefault();
     });
 
+    let _resizeRaf = null;
     document.addEventListener('mousemove', (e) => {
       if (!dragging) return;
-      const delta = startX - e.clientX; // dragging left makes panel wider
-      const newWidth = Math.min(800, Math.max(300, startWidth + delta));
-      detailPanel.style.width = newWidth + 'px';
+      if (_resizeRaf) return;
+      _resizeRaf = requestAnimationFrame(() => {
+        _resizeRaf = null;
+        const delta = startX - e.clientX;
+        const newWidth = Math.min(800, Math.max(300, startWidth + delta));
+        detailPanel.style.width = newWidth + 'px';
+      });
     });
 
     document.addEventListener('mouseup', () => {
@@ -10479,14 +10493,16 @@ document.getElementById('submitCaptureBtn').addEventListener('click', () => {
     }
   });
   
-  // Single consolidated input handler — clears results and runs local search
+  // Single consolidated input handler — clears results and runs local search (debounced 150ms)
+  let _searchInputTimer = null;
   document.getElementById('searchInput').addEventListener('input', (e) => {
     const q = e.target.value.trim();
     if (!q) {
       state.searchResults = [];
       document.getElementById('searchResults').innerHTML = '';
     }
-    runLocalSearch(q);
+    clearTimeout(_searchInputTimer);
+    _searchInputTimer = setTimeout(() => runLocalSearch(q), 150);
   });
 
   // Search filter pill handlers
