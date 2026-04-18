@@ -331,7 +331,7 @@
       padding: 8px 10px;
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background 0.2s, color 0.2s;
       font-size: 13px;
       margin-bottom: 2px;
     }
@@ -352,7 +352,7 @@
       padding: 6px 10px;
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background 0.2s, color 0.2s;
       font-size: 12px;
       margin-bottom: 2px;
     }
@@ -903,6 +903,20 @@
       font-size: 24px;
     }
     
+    .attachment-file-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .attachment-file-item:hover {
+      background: rgba(0, 212, 255, 0.1);
+    }
+
     .attachment-preview-large {
       position: relative;
       margin-top: 8px;
@@ -972,8 +986,7 @@
     /* Detail Panel */
     .detail-panel {
       width: 600px;
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(20px);
+      background: var(--bg-secondary);
       border-left: 1px solid var(--border-color);
       overflow: hidden;
       padding: 0;
@@ -2573,7 +2586,6 @@
       right: 0;
       bottom: 0;
       background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(4px);
       display: none;
       align-items: center;
       justify-content: center;
@@ -5168,19 +5180,26 @@
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
   
+  const _fmtCache = new Map();
+  let _fmtCacheTick = 0;
   function formatTime(timestamp) {
+    const now = Date.now();
+    const tick = Math.floor(now / 60000); // invalidate every minute
+    if (tick !== _fmtCacheTick) { _fmtCache.clear(); _fmtCacheTick = tick; }
+    if (_fmtCache.has(timestamp)) return _fmtCache.get(timestamp);
     const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
+    const diff = now - timestamp;
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
-    
-    if (minutes < 1) return 'just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    let result;
+    if (minutes < 1) result = 'just now';
+    else if (minutes < 60) result = `${minutes}m ago`;
+    else if (hours < 24) result = `${hours}h ago`;
+    else if (days < 7) result = `${days}d ago`;
+    else result = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    _fmtCache.set(timestamp, result);
+    return result;
   }
   
   // Markdown Parser
@@ -5191,15 +5210,29 @@
   const _mdCache = new Map();
   const _MD_CACHE_MAX = 400;
 
+  // Wikilink prefix lookup — precomputed from state.moments, rebuilt lazily on mutation
+  // Maps: lowercased 50-char prefix → moment, and id → moment
+  let _wikiPrefixes = null; // Array of {lc: string, id: string, moment: Moment}
+  function _getWikiPrefixes() {
+    if (_wikiPrefixes) return _wikiPrefixes;
+    _wikiPrefixes = state.moments.map(m => ({
+      lc: m.text.substring(0, 50).toLowerCase(),
+      id: m.id,
+      moment: m
+    }));
+    return _wikiPrefixes;
+  }
+  function invalidateWikiLookup() { _wikiPrefixes = null; _mdCache.clear(); }
+
   function parseMarkdown(text, momentId = null) {
     if (!text) return '';
 
-    // Wikilink substitution (fast regex, must run fresh in case moments changed)
+    // Wikilink substitution — uses precomputed prefix cache for O(n) total, not O(n) per link
     let processedText = text.replace(/\[\[([^\]]+)\]\]/g, (match, linkText) => {
-      const targetMoment = state.moments.find(m =>
-        m.text.substring(0, 50).toLowerCase().includes(linkText.toLowerCase()) ||
-        m.id === linkText
-      );
+      const lc = linkText.toLowerCase();
+      const prefixes = _getWikiPrefixes();
+      const entry = prefixes.find(p => p.id === linkText || p.lc.includes(lc));
+      const targetMoment = entry?.moment;
       if (targetMoment) {
         return `<a href="#" class="wikilink" data-moment-id="${targetMoment.id}" onclick="navigateToMoment('${targetMoment.id}'); return false;">[[${linkText}]]</a>`;
       }
@@ -5239,24 +5272,22 @@
     const wikilinks = extractWikilinks(moment.text);
     const outgoing = [];
     
+    const prefixes = _getWikiPrefixes();
     wikilinks.forEach(linkText => {
-      const targetMoment = state.moments.find(m => 
-        m.text.substring(0, 50).toLowerCase().includes(linkText.toLowerCase()) ||
-        m.id === linkText
-      );
-      if (targetMoment) {
-        outgoing.push(targetMoment);
-      }
+      const lc = linkText.toLowerCase();
+      const entry = prefixes.find(p => p.id === linkText || p.lc.includes(lc));
+      if (entry) outgoing.push(entry.moment);
     });
-    
-    // Find moments that link to this one
+
+    // Find moments that link to this one — use precomputed prefix for target
+    const momentPrefix = moment.text.substring(0, 50).toLowerCase();
     const incoming = state.moments.filter(m => {
       if (m.id === momentId) return false;
       const links = extractWikilinks(m.text);
-      return links.some(linkText => 
-        moment.text.substring(0, 50).toLowerCase().includes(linkText.toLowerCase()) ||
-        moment.id === linkText
-      );
+      return links.some(linkText => {
+        const lc = linkText.toLowerCase();
+        return moment.id === linkText || momentPrefix.includes(lc);
+      });
     });
     
     const result = { outgoing, incoming };
@@ -5275,7 +5306,8 @@
     }
   };
   
-  // Syntax Highlighting
+  // Syntax Highlighting — compiled regex cache for st() helper
+  const _stCache = new Map();
   function highlightCode(code, language) {
     code = code
       .replace(/&/g, '&amp;')
@@ -5284,16 +5316,21 @@
 
     // Skip existing HTML tags when applying a pattern, to prevent corrupting already-inserted spans.
     // Usage: st(code, /pattern/, (match) => replacement)
+    // _stCache: compile each combined regex once per unique pattern source
     function st(str, pattern, fn) {
-      return str.replace(
-        new RegExp('(<[^>]*>)|(?:' + pattern.source + ')', (pattern.flags || '').replace('g', '') + 'g'),
-        function(m, tag) {
-          if (tag) return tag;
-          var args = Array.prototype.slice.call(arguments, 1);
-          args[0] = undefined; // drop the `tag` capture so fn gets the real groups
-          return fn.apply(null, args.slice(1));
-        }
-      );
+      const key = pattern.source + '|' + (pattern.flags || '');
+      let re = _stCache.get(key);
+      if (!re) {
+        re = new RegExp('(<[^>]*>)|(?:' + pattern.source + ')', (pattern.flags || '').replace('g', '') + 'g');
+        _stCache.set(key, re);
+      }
+      re.lastIndex = 0;
+      return str.replace(re, function(m, tag) {
+        if (tag) return tag;
+        var args = Array.prototype.slice.call(arguments, 1);
+        args[0] = undefined;
+        return fn.apply(null, args.slice(1));
+      });
     }
 
     switch(language) {
@@ -7185,6 +7222,7 @@ window.addEventListener('pagehide', async () => {
       priority: null
     };
     state.moments.unshift(newMoment);
+    invalidateWikiLookup();
     saveData();
     closeQuickCapture();
     render();
@@ -7253,6 +7291,7 @@ window.addEventListener('pagehide', async () => {
   let _vlPinnedCount = 0;
   let _vlHasPinnedHeader = false;
   let _vlHasUnpinnedHeader = false;
+  let _threadMap = new Map(); // keyed by thread.id, rebuilt before each render batch
 
   function _buildMomentCard(moment) {
     const config = MOMENT_TYPES[moment.type];
@@ -7273,7 +7312,7 @@ window.addEventListener('pagehide', async () => {
 
     let threadBadge = '';
     if (moment.threadId && !state.selectedThread) {
-      const thread = state.threads.find(t => t.id === moment.threadId);
+      const thread = _threadMap.get(moment.threadId);
       if (thread) {
         threadBadge = `<div class="moment-thread-badge"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17h.01"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg> ${thread.name}</div>`;
       }
@@ -7438,17 +7477,20 @@ window.addEventListener('pagehide', async () => {
     const container = document.getElementById('momentsList');
     renderOnThisDay();
 
+    // Single-pass filter combining thread + type (avoids two array allocations)
+    const needsThreadFilter = !!state.selectedThread;
+    const needsTypeFilter = state.filterType !== 'all';
     let filteredMoments;
-    if (state.selectedThread === 'unthreaded') {
-      filteredMoments = state.moments.filter(m => !m.threadId);
-    } else if (state.selectedThread) {
-      filteredMoments = state.moments.filter(m => m.threadId === state.selectedThread);
-    } else {
+    if (!needsThreadFilter && !needsTypeFilter) {
       filteredMoments = state.moments;
-    }
-
-    if (state.filterType !== 'all') {
-      filteredMoments = filteredMoments.filter(m => m.type === state.filterType);
+    } else {
+      filteredMoments = state.moments.filter(m => {
+        if (needsThreadFilter) {
+          if (state.selectedThread === 'unthreaded' ? m.threadId : m.threadId !== state.selectedThread) return false;
+        }
+        if (needsTypeFilter && m.type !== state.filterType) return false;
+        return true;
+      });
     }
 
     let displayMoments = state.view === 'search' && state.searchResults.length > 0
@@ -7518,16 +7560,26 @@ window.addEventListener('pagehide', async () => {
     _vlHasPinnedHeader = false;
     _vlHasUnpinnedHeader = false;
 
+    // Rebuild thread lookup Map once before rendering cards
+    _threadMap = new Map(state.threads.map(t => [t.id, t]));
+
     _vlRenderBatch();
   }
   
+  let _lastDetailId = null;
+  function invalidateDetail() { _lastDetailId = null; }
   function renderDetail() {
-    const panel = document.getElementById('detailPanel');
-    
+    const panel = _els.detailPanel;
+
     if (!state.selectedMoment) {
       panel.classList.remove('visible');
+      _lastDetailId = null;
       return;
     }
+
+    // Skip full rebuild if the same moment is already displayed
+    if (state.selectedMoment.id === _lastDetailId) return;
+    _lastDetailId = state.selectedMoment.id;
     
     panel.classList.add('visible');
     const moment = state.selectedMoment;
@@ -7746,7 +7798,7 @@ window.addEventListener('pagehide', async () => {
           attachmentsContainer.appendChild(preview);
         } else {
           const fileItem = document.createElement('div');
-          fileItem.style.cssText = 'display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; cursor: pointer; transition: all 0.2s;';
+          fileItem.className = 'attachment-file-item';
           fileItem.innerHTML = `
             <div style="font-size: 32px;"><svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div>
             <div style="flex: 1;">
@@ -7756,8 +7808,6 @@ window.addEventListener('pagehide', async () => {
             <div style="font-size: 20px; color: var(--accent-primary);"><svg class="icon-action" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></div>
           `;
           fileItem.addEventListener('click', () => downloadAttachment(attachment));
-          fileItem.addEventListener('mouseover', () => fileItem.style.background = 'rgba(0, 212, 255, 0.1)');
-          fileItem.addEventListener('mouseout', () => fileItem.style.background = 'rgba(0, 0, 0, 0.2)');
           attachmentsContainer.appendChild(fileItem);
         }
       });
@@ -7819,7 +7869,7 @@ window.addEventListener('pagehide', async () => {
     if (key === _threadsRenderKey) return;
     _threadsRenderKey = key;
 
-    const container = document.getElementById('threadList');
+    const container = _els.threadList;
     container.innerHTML = '';
 
     // Count moments per thread in one pass instead of one filter per thread
@@ -7872,16 +7922,14 @@ window.addEventListener('pagehide', async () => {
       if (!m.threadId) unthreadedCount++;
     }
 
-    const countAllEl = document.getElementById('count-all');
-    if (countAllEl) countAllEl.textContent = momentsToCount.length;
+    if (_countEls.all) _countEls.all.textContent = momentsToCount.length;
 
     Object.keys(MOMENT_TYPES).forEach(type => {
-      const countEl = document.getElementById(`count-${type}`);
-      if (countEl) countEl.textContent = typeCounts[type] || 0;
+      const el = _countEls.types[type];
+      if (el) el.textContent = typeCounts[type] || 0;
     });
 
-    const unthreadedCountEl = document.getElementById('count-unthreaded');
-    if (unthreadedCountEl) unthreadedCountEl.textContent = unthreadedCount;
+    if (_countEls.unthreaded) _countEls.unthreaded.textContent = unthreadedCount;
   }
   
   
@@ -7894,7 +7942,8 @@ window.addEventListener('pagehide', async () => {
     const container = document.getElementById('graphContainer');
 
     // Build a cheap key — only rebuild D3 if moments changed
-    const dataKey = state.moments.length + '|' + state.moments.map(m => m.id).join(',');
+    const last = state.moments[state.moments.length - 1];
+    const dataKey = state.moments.length + '|' + (last ? last.id : '');
     const dataChanged = dataKey !== _graphDataKey;
     _graphDataKey = dataKey;
 
@@ -7957,13 +8006,20 @@ window.addEventListener('pagehide', async () => {
     const links = [];
     const linkSet = new Set();
     
+    // Build O(1) lookup for wikilink resolution (avoids O(n) find per link)
+    const _wikiLookup = new Map();
+    state.moments.forEach(m => {
+      _wikiLookup.set(m.id, m);
+      const prefix = m.text.substring(0, 50).toLowerCase();
+      if (!_wikiLookup.has(prefix)) _wikiLookup.set(prefix, m);
+    });
+
     state.moments.forEach(moment => {
       const wikilinks = extractWikilinks(moment.text);
       wikilinks.forEach(linkText => {
-        const targetMoment = state.moments.find(m => 
-          m.text.substring(0, 50).toLowerCase().includes(linkText.toLowerCase()) ||
-          m.id === linkText
-        );
+        const lc = linkText.toLowerCase();
+        const targetMoment = _wikiLookup.get(linkText) ||
+          state.moments.find(m => m.text.substring(0, 50).toLowerCase().includes(lc));
         if (targetMoment) {
           const linkKey = `${moment.id}-${targetMoment.id}`;
           if (!linkSet.has(linkKey)) {
@@ -8120,6 +8176,7 @@ window.addEventListener('pagehide', async () => {
       // Temporarily swap the panel reference
       const tempHTML = detailPanel.innerHTML;
       state.selectedMoment = moment;
+      invalidateDetail();
       renderDetail();
       panel.innerHTML = detailPanel.innerHTML;
       detailPanel.innerHTML = tempHTML;
@@ -8128,11 +8185,17 @@ window.addEventListener('pagehide', async () => {
   }
   
   // Mobile Navigation
+  let _mobileHeadersInitialized = false;
+  let _cachedMobileNavItems = null;
+
   function setupMobileNavigation() {
     if (window.innerWidth <= 768) {
-      // Add mobile headers
-      addMobileHeaders();
-      
+      // Add mobile headers (only once)
+      if (!_mobileHeadersInitialized) {
+        addMobileHeaders();
+        _mobileHeadersInitialized = true;
+      }
+
       // Update view visibility for mobile
       updateMobileViews();
     }
@@ -8233,13 +8296,13 @@ window.addEventListener('pagehide', async () => {
   function updateMobileViews() {
     if (window.innerWidth > 768) return;
 
-    const timelineView = document.getElementById('timelineView');
-    const captureView = document.getElementById('captureView');
-    const searchView = document.getElementById('searchView');
-    const graphView = document.getElementById('graphView');
-    const whiteboardView = document.getElementById('whiteboardView');
-    const markdownEditorView = document.getElementById('markdownEditorView');
-    const codeEditorView = document.getElementById('codeEditorView');
+    const timelineView = _els.timelineView;
+    const captureView = _els.captureView;
+    const searchView = _els.searchView;
+    const graphView = _els.graphView;
+    const whiteboardView = _els.whiteboardView;
+    const markdownEditorView = _els.markdownEditorView;
+    const codeEditorView = _els.codeEditorView;
 
     // Remove all visible classes first
     timelineView.classList.remove('visible');
@@ -8269,7 +8332,10 @@ window.addEventListener('pagehide', async () => {
     }
 
     // Update bottom nav active state
-    document.querySelectorAll('.mobile-nav-item[data-view]').forEach(btn => {
+    if (!_cachedMobileNavItems) {
+      _cachedMobileNavItems = Array.from(document.querySelectorAll('.mobile-nav-item[data-view]'));
+    }
+    _cachedMobileNavItems.forEach(btn => {
       btn.classList.toggle('active', btn.dataset.view === state.view);
     });
   }
@@ -8429,7 +8495,7 @@ function renderMobileCaptureButton() {
 
     // Sync topZ so new bring-to-fronts are always above existing tiles
     if (state.whiteboardTiles.length) {
-      wb.topZ = Math.max(wb.topZ, ...state.whiteboardTiles.map(t => t.zIndex || 1));
+      wb.topZ = state.whiteboardTiles.reduce((max, t) => Math.max(max, t.zIndex || 1), wb.topZ);
     }
 
     canvas.style.transform = `translate(${wb.panX}px,${wb.panY}px) scale(${wb.scale})`;
@@ -8444,10 +8510,13 @@ function renderMobileCaptureButton() {
       </marker>
     </defs>`;
 
+    // Build tile lookup Map for O(1) link rendering
+    const tileMap = new Map(state.whiteboardTiles.map(t => [t.id, t]));
+
     // Draw links
     state.whiteboardLinks.forEach(link => {
-      const from = state.whiteboardTiles.find(t => t.id === link.fromTileId);
-      const to   = state.whiteboardTiles.find(t => t.id === link.toTileId);
+      const from = tileMap.get(link.fromTileId);
+      const to   = tileMap.get(link.toTileId);
       if (!from || !to) return;
       const x1 = from.x + (from.width || 200) / 2;
       const y1 = from.y + (from.height || 120) / 2;
@@ -8488,9 +8557,10 @@ function renderMobileCaptureButton() {
     const svg = document.getElementById('wbLinksSvg');
     if (!svg) return;
     svg.querySelectorAll('line, text').forEach(el => el.remove());
+    const tileMap = new Map(state.whiteboardTiles.map(t => [t.id, t]));
     state.whiteboardLinks.forEach(link => {
-      const from = state.whiteboardTiles.find(t => t.id === link.fromTileId);
-      const to   = state.whiteboardTiles.find(t => t.id === link.toTileId);
+      const from = tileMap.get(link.fromTileId);
+      const to   = tileMap.get(link.toTileId);
       if (!from || !to) return;
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       line.setAttribute('x1', from.x + (from.width || 200) / 2);
@@ -9140,14 +9210,43 @@ function renderMobileCaptureButton() {
   const _cachedNavItems = Array.from(document.querySelectorAll('.nav-item'));
   const _cachedFilterItems = Array.from(document.querySelectorAll('.filter-item'));
 
+  // Cached persistent element references — getElementById called once at init
+  const _els = {
+    timelineView:          document.getElementById('timelineView'),
+    captureView:           document.getElementById('captureView'),
+    searchView:            document.getElementById('searchView'),
+    graphView:             document.getElementById('graphView'),
+    whiteboardView:        document.getElementById('whiteboardView'),
+    markdownEditorView:    document.getElementById('markdownEditorView'),
+    codeEditorView:        document.getElementById('codeEditorView'),
+    detailPanel:           document.getElementById('detailPanel'),
+    timelineTitle:         document.getElementById('timelineTitle'),
+    threadBanner:          document.getElementById('threadBanner'),
+    threadBannerText:      document.getElementById('threadBannerText'),
+    threadBannerDeleteBtn: document.getElementById('threadBannerDeleteBtn'),
+    unthreadedFilter:      document.getElementById('unthreadedFilter'),
+    captureThreadIndicator:document.getElementById('captureThreadIndicator'),
+    captureTitle:          document.getElementById('captureTitle'),
+    captureSubtitle:       document.getElementById('captureSubtitle'),
+    captureThreadSelect:   document.getElementById('captureThreadSelect'),
+    threadList:            document.getElementById('threadList'),
+  };
+
+  // Pre-cache count badge elements — queried once, reused in updateCounts()
+  const _countEls = {
+    all:         document.getElementById('count-all'),
+    unthreaded:  document.getElementById('count-unthreaded'),
+    types:       Object.fromEntries(Object.keys(MOMENT_TYPES).map(t => [t, document.getElementById(`count-${t}`)]))
+  };
+
   function render() {
-    const timelineView = document.getElementById('timelineView');
-    const captureView = document.getElementById('captureView');
-    const searchView = document.getElementById('searchView');
-    const graphView = document.getElementById('graphView');
-    const whiteboardView = document.getElementById('whiteboardView');
-    const markdownEditorView = document.getElementById('markdownEditorView');
-    const codeEditorView = document.getElementById('codeEditorView');
+    const timelineView = _els.timelineView;
+    const captureView = _els.captureView;
+    const searchView = _els.searchView;
+    const graphView = _els.graphView;
+    const whiteboardView = _els.whiteboardView;
+    const markdownEditorView = _els.markdownEditorView;
+    const codeEditorView = _els.codeEditorView;
 
     if (timelineView) timelineView.classList.toggle('hidden', state.view !== 'timeline');
     if (captureView) captureView.classList.toggle('visible', state.view === 'capture');
@@ -9168,10 +9267,10 @@ function renderMobileCaptureButton() {
     }
     
     if (state.view === 'capture') {
-      const threadIndicator = document.getElementById('captureThreadIndicator');
-      const captureTitle = document.getElementById('captureTitle');
-      const captureSubtitle = document.getElementById('captureSubtitle');
-      
+      const threadIndicator = _els.captureThreadIndicator;
+      const captureTitle = _els.captureTitle;
+      const captureSubtitle = _els.captureSubtitle;
+
       if (state.editingMoment) {
         if (captureTitle) captureTitle.textContent = 'Edit Moment';
         if (captureSubtitle) {
@@ -9182,9 +9281,9 @@ function renderMobileCaptureButton() {
         if (captureTitle) captureTitle.textContent = 'Capture a Moment';
         if (captureSubtitle) captureSubtitle.textContent = 'What are you thinking right now?';
       }
-      
+
       if (state.selectedThread && !state.editingMoment && threadIndicator) {
-        const thread = state.threads.find(t => t.id === state.selectedThread);
+        const thread = _threadMap.get(state.selectedThread) || state.threads.find(t => t.id === state.selectedThread);
         if (thread) {
           threadIndicator.classList.remove('hidden');
           threadIndicator.innerHTML = `<svg class="icon-context" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17h.01"/><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg> Adding to thread: <strong>${thread.name}</strong>`;
@@ -9192,8 +9291,8 @@ function renderMobileCaptureButton() {
       } else if (threadIndicator) {
         threadIndicator.classList.add('hidden');
       }
-      
-      const threadSelect = document.getElementById('captureThreadSelect');
+
+      const threadSelect = _els.captureThreadSelect;
       if (threadSelect) {
         threadSelect.innerHTML = '<option value="">No thread</option>';
         state.threads.forEach(thread => {
@@ -9211,10 +9310,10 @@ function renderMobileCaptureButton() {
     _cachedNavItems.forEach(item => item.classList.toggle('active', item.dataset.view === state.view));
     _cachedFilterItems.forEach(item => item.classList.toggle('active', item.dataset.filter === state.filterType));
     
-    const titleEl = document.getElementById('timelineTitle');
-    const threadBanner = document.getElementById('threadBanner');
-    const threadBannerText = document.getElementById('threadBannerText');
-    const threadBannerDeleteBtn = document.getElementById('threadBannerDeleteBtn');
+    const titleEl = _els.timelineTitle;
+    const threadBanner = _els.threadBanner;
+    const threadBannerText = _els.threadBannerText;
+    const threadBannerDeleteBtn = _els.threadBannerDeleteBtn;
     
     if (!state.filterType || (state.filterType !== 'all' && !MOMENT_TYPES[state.filterType])) {
       state.filterType = 'all';
@@ -9266,7 +9365,7 @@ function renderMobileCaptureButton() {
       }
     }
     
-    const unthreadedFilter = document.getElementById('unthreadedFilter');
+    const unthreadedFilter = _els.unthreadedFilter;
     if (unthreadedFilter) {
       if (state.threads.length > 0) {
         unthreadedFilter.classList.remove('hidden');
@@ -9284,8 +9383,7 @@ function renderMobileCaptureButton() {
     if (state.selectedMoment) {
       renderDetail();
     } else {
-      const panel = document.getElementById('detailPanel');
-      if (panel) panel.classList.remove('visible');
+      if (_els.detailPanel) _els.detailPanel.classList.remove('visible');
     }
     renderThreads();
     updateCounts();
@@ -10055,7 +10153,7 @@ document.getElementById('newThreadBtn').addEventListener('click', () => {
       btn.classList.toggle('active', btn.dataset.type === moment.type);
     });
     
-    state.captureCharts = moment.charts ? JSON.parse(JSON.stringify(moment.charts)) : [];
+    state.captureCharts = moment.charts ? structuredClone(moment.charts) : [];
     const chartPreview = document.getElementById('chartPreview');
     chartPreview.innerHTML = '';
     state.captureCharts.forEach(chart => {
@@ -10070,21 +10168,21 @@ document.getElementById('newThreadBtn').addEventListener('click', () => {
       ));
     });
     
-    state.captureCodeBlocks = moment.codeBlocks ? JSON.parse(JSON.stringify(moment.codeBlocks)) : [];
+    state.captureCodeBlocks = moment.codeBlocks ? structuredClone(moment.codeBlocks) : [];
     const codePreview = document.getElementById('codePreview');
     codePreview.innerHTML = '';
     state.captureCodeBlocks.forEach(codeBlock => {
       codePreview.appendChild(createCodeBlock(codeBlock.language, codeBlock.code, codeBlock.title || '', codeBlock.id));
     });
     
-    state.captureTables = moment.tables ? JSON.parse(JSON.stringify(moment.tables)) : [];
+    state.captureTables = moment.tables ? structuredClone(moment.tables) : [];
     const tablePreview = document.getElementById('tablePreview');
     tablePreview.innerHTML = '';
     state.captureTables.forEach(table => {
       tablePreview.appendChild(createTable(table.title || '', table.data, table.id));
     });
     
-    state.captureAttachments = moment.attachments ? JSON.parse(JSON.stringify(moment.attachments)) : [];
+    state.captureAttachments = moment.attachments ? structuredClone(moment.attachments) : [];
     const attachmentsPreview = document.getElementById('attachmentsPreview');
     attachmentsPreview.innerHTML = '';
     state.captureAttachments.forEach(attachment => {
@@ -10175,6 +10273,7 @@ function showConfirmModal(title, message, icon, onConfirm) {
     renderMoments();
     if (state.selectedMoment?.id === momentId) {
       state.selectedMoment = moment;
+      invalidateDetail();
       renderDetail();
     }
   };
@@ -10198,7 +10297,7 @@ function showConfirmModal(title, message, icon, onConfirm) {
     
     state.moments.splice(momentIndex, 1);
     state.selectedMoment = null;
-    
+    invalidateWikiLookup();
     saveData();
     hideConfirmModal();
     render();
@@ -10342,7 +10441,8 @@ document.getElementById('submitCaptureBtn').addEventListener('click', () => {
     state.moments.unshift(newMoment);
     // Don't auto-select the moment - just add it
   }
-  
+  invalidateWikiLookup();
+
   // Clear selected moment so detail panel doesn't open
   state.selectedMoment = null;
   state.view = 'timeline';
@@ -10732,10 +10832,11 @@ Return only: ["id1", "id2", ...]`
           state.selectedMoment = null;
           state.selectedThread = null;
           state.view = 'timeline';
-          
+          invalidateWikiLookup();
+
           // Save to localStorage as backup
           saveData();
-          
+
           // If auto-save is active, save immediately
           if (state.autoSaveEnabled && state.autoSaveFileHandle) {
             await performAutoSave();
@@ -10797,10 +10898,11 @@ Return only: ["id1", "id2", ...]`
         state.selectedMoment = null;
         state.selectedThread = null;
         state.view = 'timeline';
-        
+        invalidateWikiLookup();
+
         // Save to localStorage as backup
         saveData();
-        
+
         // If auto-save is active, save immediately
         if (state.autoSaveEnabled && state.autoSaveFileHandle) {
           await performAutoSave();
